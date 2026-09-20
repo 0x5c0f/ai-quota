@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.api-balance.custom" path="/org/gnome/shell/extensions/api-balance/custom/">
+    <key name="enabled" type="b">
+      <default>false</default>
+      <summary>Whether this provider is queried</summary>
+    </key>
+    <key name="pinned" type="b">
+      <default>false</default>
+      <summary>Show this provider in the top bar</summary>
+    </key>
+    <key name="name" type="s">
+      <default>''</default>
+      <summary>Display name shown in the top bar and panel</summary>
+    </key>
+    <key name="api-key" type="s">
+      <default>''</default>
+      <summary>API key (Authorization: Bearer)</summary>
+    </key>
+    <key name="url" type="s">
+      <default>''</default>
+      <summary>Full balance-query URL, requested as-is (no path appended)</summary>
+    </key>
+    <key name="map-currency" type="s">
+      <default>''</default>
+      <summary>Dotted JSON path for the currency code; empty defaults to CNY</summary>
+    </key>
+    <key name="map-total" type="s">
+      <default>''</default>
+      <summary>Dotted JSON path (array index allowed) for the balance field</summary>
+    </key>
+    <key name="map-granted" type="s">
+      <default>''</default>
+      <summary>Dotted JSON path for the granted field; empty hides it</summary>
+    </key>
+    <key name="map-topped-up" type="s">
+      <default>''</default>
+      <summary>Dotted JSON path for the topped-up field; empty hides it</summary>
+    </key>
+  </schema>
+</schemalist>

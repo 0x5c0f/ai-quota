@@ -1,0 +1,122 @@
+.ab-panel-box {
+  spacing: 4px;
+  padding: 0 4px;
+}
+
+.ab-summary {
+  font-size: 0.9em;
+}
+
+.ab-badge {
+  color: #e8ab53;
+  font-weight: bold;
+}
+
+.ab-popup {
+  width: 340px;
+}
+
+.ab-header {
+  padding: 8px 12px 4px 12px;
+}
+
+.ab-title {
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.ab-cards {
+  spacing: 8px;
+  padding: 4px 12px;
+}
+
+.ab-empty {
+  padding: 16px 0;
+  font-size: 0.9em;
+}
+
+.ab-card {
+  background-color: rgba(128, 128, 128, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  spacing: 2px;
+}
+
+.ab-card-head {
+  spacing: 8px;
+  padding-bottom: 6px;
+}
+
+.ab-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 5px;
+}
+
+.ab-dot-on { background-color: #3584e4; }
+.ab-dot-off { background-color: rgba(128, 128, 128, 0.55); }
+
+.ab-card-name {
+  font-weight: 700;
+}
+
+.ab-status {
+  font-size: 0.85em;
+}
+
+.ab-status-ok { color: #2ec27e; }
+.ab-status-loading,
+.ab-status-init,
+.ab-status-unconfigured { color: #9a9996; }
+.ab-status-auth,
+.ab-status-error,
+.ab-status-unavail { color: #e01b24; }
+
+.ab-kv {
+  padding: 3px 0;
+  spacing: 12px;
+}
+
+.ab-kv-key {
+  font-size: 0.92em;
+}
+
+.ab-kv-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.ab-kv-big {
+  font-weight: 700;
+  font-size: 1.05em;
+}
+
+.ab-cur-sep {
+  height: 1px;
+  margin: 5px 0;
+  background-color: rgba(128, 128, 128, 0.3);
+}
+
+.ab-sep {
+  height: 1px;
+  margin: 6px 12px;
+  background-color: rgba(128, 128, 128, 0.3);
+}
+
+.ab-actions {
+  spacing: 8px;
+  padding: 4px 12px 10px 12px;
+}
+
+.ab-btn {
+  border-radius: 99px;
+  padding: 4px 16px;
+  background-color: rgba(128, 128, 128, 0.18);
+}
+
+.ab-btn:hover {
+  background-color: rgba(128, 128, 128, 0.32);
+}
+
+.ab-btn-icon {
+  padding: 4px 10px;
+}

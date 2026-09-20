@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: write
+
+env:
+  UUID: api-balance@tools.0x5c0f.cc
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libglib2.0-bin zip
+
+      - name: Validate metadata.json
+        run: |
+          node -e '
+            const fs = require("fs");
+            const m = JSON.parse(fs.readFileSync("metadata.json"));
+            if (m.uuid !== process.env.UUID) throw new Error("uuid mismatch: " + m.uuid);
+            if (!m["shell-version"]?.length) throw new Error("shell-version missing");
+            for (const k of ["name", "description", "settings-schema"])
+              if (!m[k]) throw new Error(k + " missing");
+            console.log("metadata ok:", JSON.stringify(m["shell-version"]));
+          '
+
+      - name: Validate settings schema
+        run: glib-compile-schemas --strict --targetdir=$(mktemp -d) schemas/
+
+      - name: Syntax-check JavaScript modules
+        run: |
+          for f in extension.js prefs.js providers/*.js; do
+            cp "$f" /tmp/check.mjs
+            node --check /tmp/check.mjs || exit 1
+          done
+
+      - name: Build extension zip
+        run: |
+          # metadata.json must sit at the zip root; LICENSE/README/.github are
+          # deliberately excluded (not extension runtime files).
+          zip -r "$UUID.zip" \
+            metadata.json extension.js prefs.js stylesheet.css \
+            schemas/*.xml providers/*.js
+
+      - name: Verify zip contents
+        run: |
+          unzip -l "$UUID.zip"
+          for f in metadata.json extension.js prefs.js stylesheet.css \
+                   schemas/org.gnome.shell.extensions.api-balance.gschema.xml \
+                   schemas/org.gnome.shell.extensions.api-balance.deepseek.gschema.xml \
+                   schemas/org.gnome.shell.extensions.api-balance.kimi.gschema.xml \
+                   schemas/org.gnome.shell.extensions.api-balance.custom.gschema.xml \
+                   providers/deepseek.js providers/kimi.js providers/generic.js; do
+            unzip -l "$UUID.zip" "$f" | grep -q "$f" || { echo "missing in zip: $f"; exit 1; }
+          done
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.UUID }}.zip
+          generate_release_notes: true

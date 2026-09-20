@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.api-balance" path="/org/gnome/shell/extensions/api-balance/">
+    <key name="refresh-interval" type="i">
+      <default>300</default>
+      <range min="60" max="86400"/>
+      <summary>Refresh interval in seconds</summary>
+    </key>
+    <key name="topbar-display" type="s">
+      <default>'single'</default>
+      <summary>Top bar display mode when multiple providers are pinned</summary>
+    </key>
+    <child name="deepseek" schema="org.gnome.shell.extensions.api-balance.deepseek"/>
+    <child name="kimi" schema="org.gnome.shell.extensions.api-balance.kimi"/>
+    <child name="custom" schema="org.gnome.shell.extensions.api-balance.custom"/>
+  </schema>
+</schemalist>
