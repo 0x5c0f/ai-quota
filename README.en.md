@@ -8,6 +8,12 @@ multiple AI API providers right in the desktop top bar.
 It supports built-in providers and custom balance endpoints, and ships a
 native-looking GNOME preferences window.
 
+## Screenshots
+
+Dropdown panel (with the top bar balance display):
+
+![Detail panel](docs/screenshot-panel.png)
+
 ## Features
 
 - Shows pinned providers' balances in the GNOME Shell top bar.
