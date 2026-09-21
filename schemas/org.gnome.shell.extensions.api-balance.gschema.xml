@@ -15,7 +15,6 @@
       <summary>How quota windows render in the panel: bar or text</summary>
     </key>
     <child name="deepseek" schema="org.gnome.shell.extensions.api-balance.deepseek"/>
-    <child name="kimi" schema="org.gnome.shell.extensions.api-balance.kimi"/>
     <child name="codexbar" schema="org.gnome.shell.extensions.api-balance.codexbar"/>
     <child name="custom" schema="org.gnome.shell.extensions.api-balance.custom"/>
   </schema>

@@ -92,6 +92,8 @@ export default class CodexBarProvider {
             if (!id || skipIds.has(id))
                 continue;
             const card = { id, name: String(pv.name ?? pv.displayName ?? id) };
+            if (typeof pv.display?.accentColor === 'string')
+                card.accent = pv.display.accentColor;
             const plan = pv.identity?.plan ?? pv.plan ?? pv.tier;
             if (plan)
                 card.badge = String(plan);

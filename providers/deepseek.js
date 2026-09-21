@@ -8,6 +8,7 @@ export function fmtAmount(currency, value) {
 export default class DeepSeekProvider {
     id = 'deepseek';
     name = 'DeepSeek';
+    logo = { color: '#4d6bfe', text: 'DS' };
     defaultBaseUrl = 'https://api.deepseek.com';
 
     buildRequest(cfg) {

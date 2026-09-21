@@ -23,6 +23,7 @@
 - 支持自定义余额查询接口。
 - 支持 CodexBar 桥接：一次接入即可获得其维护的约 70 家服务商用量数据（Claude、Gemini、Cursor 等）。
 - 配额窗口以进度条展示（会话 / 周等），带重置倒计时与用量颜色提示。
+- 下拉面板为自绘的深色卡片风格，不跟随系统主题：顶栏与面板在任何主题下都保持一致的观感，也避免逐一适配社区主题。
 - 使用 JSON 点路径读取自定义接口响应字段。
 - 不包含遥测功能，不主动连接未配置的第三方服务。
 
@@ -33,7 +34,6 @@
 | 服务商 | 请求接口 | 认证方式 |
 | --- | --- | --- |
 | DeepSeek | `/user/balance` | `Authorization: Bearer <API Key>` |
-| Kimi | `/v1/users/me/balance` | `Authorization: Bearer <API Key>` |
 
 此外，还可以通过“自定义”配置接入其他兼容的余额查询接口。
 
@@ -218,7 +218,6 @@ Authorization: Bearer <API Key>
 ├── stylesheet.css        # 界面样式
 ├── providers/
 │   ├── deepseek.js       # DeepSeek provider
-│   ├── kimi.js           # Kimi provider
 │   ├── generic.js        # 自定义 provider
 │   └── codexbar.js       # CodexBar 桥接 provider
 ├── schemas/

@@ -9,7 +9,6 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 import DeepSeekProvider from './providers/deepseek.js';
-import KimiProvider from './providers/kimi.js';
 import GenericProvider from './providers/generic.js';
 import CodexBarProvider from './providers/codexbar.js';
 
@@ -28,10 +27,17 @@ try {
 // Provider registry: add a file under providers/ and register it here.
 // Instantiated per panel (not at module load) to keep extension.js side-effect free.
 function buildProviders() {
-    return [new DeepSeekProvider(), new KimiProvider(), new CodexBarProvider(), new GenericProvider()];
+    return [new DeepSeekProvider(), new CodexBarProvider(), new GenericProvider()];
 }
 
 const CURRENCY_SYMBOL = { CNY: '¥', USD: '$' };
+
+// Logo colours are fixed (not theme-driven) so each card stays recognisable.
+const DIRECT_LOGOS = {
+    deepseek: { color: '#4d6bfe', text: 'DS' },
+    custom: { color: '#00b0ff' },
+};
+const BRIDGE_LOGOS = ['#7a5af8', '#d97757', '#10a37f', '#00b0ff', '#e8590c'];
 
 function fmtAmount(currency, value) {
     const sym = CURRENCY_SYMBOL[currency] ?? `${currency} `;
@@ -69,6 +75,18 @@ function windowColor(remaining) {
     if (remaining <= 50)
         return [0.961, 0.761, 0.067]; // yellow
     return [0.208, 0.518, 0.894];     // blue
+}
+
+// A snapshot field is external input into a CSS string: accept plain hex only.
+function safeHex(color) {
+    return typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color.trim()) ? color.trim() : null;
+}
+
+function accentForId(id) {
+    let h = 0;
+    for (const c of String(id))
+        h = (h * 31 + c.charCodeAt(0)) % BRIDGE_LOGOS.length;
+    return BRIDGE_LOGOS[h];
 }
 
 function makeMessage(uri, headers) {
@@ -111,10 +129,10 @@ class BalancePanel extends PanelMenu.Button {
 
         this._panelBox = new St.BoxLayout({ style_class: 'ab-panel-box' });
         this._icon = new St.Label({ text: '⚡', y_align: Clutter.ActorAlign.CENTER, style_class: 'ab-icon' });
-        this._summary = new St.Label({ text: 'API', y_align: Clutter.ActorAlign.CENTER, style_class: 'ab-summary' });
+        this._summaryBox = new St.BoxLayout({ style_class: 'ab-summary-box', y_align: Clutter.ActorAlign.CENTER });
         this._badge = new St.Label({ text: '', y_align: Clutter.ActorAlign.CENTER, style_class: 'ab-badge' });
         this._panelBox.add_child(this._icon);
-        this._panelBox.add_child(this._summary);
+        this._panelBox.add_child(this._summaryBox);
         this._panelBox.add_child(this._badge);
         this.add_child(this._panelBox);
 
@@ -176,36 +194,35 @@ class BalancePanel extends PanelMenu.Button {
         const box = this.menu.box;
         box.add_style_class_name('ab-popup');
 
-        const refreshBtn = new St.Button({
-            label: '刷新',
-            style_class: 'ab-btn ab-btn-refresh',
+        this._header = new St.BoxLayout({ style_class: 'ab-header' });
+        this._header.add_child(new St.Label({
+            text: 'API 额度',
+            style_class: 'ab-title',
+            x_align: Clutter.ActorAlign.START,
+            x_expand: true,
             y_align: Clutter.ActorAlign.CENTER,
+        }));
+        const refreshBtn = new St.Button({
+            child: new St.Icon({ icon_name: 'view-refresh-symbolic', icon_size: 16 }),
+            style_class: 'ab-iconbtn',
         });
         refreshBtn.connect('clicked', () => this._fetchAll());
-
-        this._header = new St.BoxLayout({ style_class: 'ab-header' });
-        this._headerText = new St.Label({ text: 'API 额度', style_class: 'ab-title', x_expand: true, y_align: Clutter.ActorAlign.CENTER });
-        this._header.add_child(this._headerText);
+        const prefsBtn = new St.Button({
+            child: new St.Icon({ icon_name: 'emblem-system-symbolic', icon_size: 16 }),
+            style_class: 'ab-iconbtn',
+        });
+        prefsBtn.connect('clicked', () => this._openPreferences());
         this._header.add_child(refreshBtn);
+        this._header.add_child(prefsBtn);
         box.add_child(this._header);
 
         this._cards = new St.BoxLayout({ vertical: true, style_class: 'ab-cards' });
         box.add_child(this._cards);
 
-        this._footer = new St.Label({ text: '', style_class: 'ab-footer dim-label', x_align: Clutter.ActorAlign.START });
-        box.add_child(this._footer);
-
-        this._sep = new St.BoxLayout({ style_class: 'ab-sep' });
-        box.add_child(this._sep);
-
-        const actions = new St.BoxLayout({ style_class: 'ab-actions' });
-        const prefsBtn = new St.Button({
-            child: new St.Icon({ icon_name: 'emblem-system-symbolic', icon_size: 16 }),
-            style_class: 'ab-btn ab-btn-icon',
-        });
-        prefsBtn.connect('clicked', () => this._openPreferences());
-        actions.add_child(prefsBtn);
-        box.add_child(actions);
+        this._foot = new St.BoxLayout({ style_class: 'ab-foot' });
+        this._footPill = new St.Label({ text: '', style_class: 'ab-foot-pill', x_align: Clutter.ActorAlign.START });
+        this._foot.add_child(this._footPill);
+        box.add_child(this._foot);
     }
 
     _render() {
@@ -228,16 +245,16 @@ class BalancePanel extends PanelMenu.Button {
     _bridgeTopbarPart(st) {
         const worst = this._bridgeTightest(st);
         if (worst)
-            return `${worst.name} ${Math.round(worst.remaining)}%`;
+            return { name: worst.name, value: `${Math.round(worst.remaining)}%`, tone: worst.remaining < 20 ? 'err' : 'pct' };
         // Snapshots may hold cost/credits-only rows (no quota window at all);
         // fall back so a pinned bridge is never silent.
         for (const card of st.cards ?? []) {
             if (card.credits)
-                return `${card.name} ${fmtCredits(card.credits)}`;
+                return { name: card.name, value: fmtCredits(card.credits), tone: 'value' };
         }
         for (const card of st.cards ?? []) {
             if (card.todayUSD !== null && card.todayUSD !== undefined)
-                return `${card.name} $${card.todayUSD.toFixed(2)}`;
+                return { name: card.name, value: `$${card.todayUSD.toFixed(2)}`, tone: 'value' };
         }
         return null;
     }
@@ -258,20 +275,20 @@ class BalancePanel extends PanelMenu.Button {
                         parts.push(part);
                 } else if (st.kind !== 'loading' && st.kind !== 'init') {
                     errors++;
-                    parts.push(`${disp}: !`);
+                    parts.push({ name: disp, value: '!', tone: 'err' });
                 }
                 continue;
             }
             if (st.kind === 'ok') {
                 const amounts = st.entries.map(e => fmtAmount(e.currency, e.total)).join(' ');
-                parts.push(`${disp}: ${amounts}`);
+                parts.push({ name: disp, value: amounts, tone: 'value' });
             } else if (st.kind === 'unconfigured') {
-                parts.push(`${disp}: 未配置`);
+                parts.push({ name: disp, value: '未配置', tone: 'dim' });
             } else if (st.kind === 'loading' || st.kind === 'init') {
-                parts.push(`${disp}: …`);
+                parts.push({ name: disp, value: '…', tone: 'dim' });
             } else {
                 errors++;
-                parts.push(`${disp}: !`);
+                parts.push({ name: disp, value: '!', tone: 'err' });
             }
         }
 
@@ -288,16 +305,24 @@ class BalancePanel extends PanelMenu.Button {
     }
 
     _applyTopbar() {
+        this._summaryBox.destroy_all_children();
         const parts = this._topbarParts;
+        const add = (text, cls) => this._summaryBox.add_child(
+            new St.Label({ text, style_class: cls, y_align: Clutter.ActorAlign.CENTER }));
+
         if (parts.length === 0) {
-            this._summary.set_text('API');
+            add('API', 'ab-top-value');
             return;
         }
         const mode = this._settings.get_string('topbar-display');
-        if (mode === 'single')
-            this._summary.set_text(parts.join(' | '));
-        else
-            this._summary.set_text(parts[this._topbarIdx % parts.length]);
+        const shown = mode === 'single' ? parts : [parts[this._topbarIdx % parts.length]];
+        for (const [i, part] of shown.entries()) {
+            if (i > 0)
+                add('|', 'ab-top-sep');
+            add(part.name, 'ab-top-name');
+            const tone = part.tone === 'value' ? '' : ` ab-top-${part.tone}`;
+            add(part.value, `ab-top-value${tone}`);
+        }
     }
 
     _updateCarouselTimer() {
@@ -329,11 +354,11 @@ class BalancePanel extends PanelMenu.Button {
             if (p.bridge) {
                 if (st.kind === 'ok') {
                     for (const card of st.cards)
-                        this._cards.add_child(this._bridgeCard(p, card));
+                        this._cards.add_child(this._bridgeCard(card));
                     if (st.cards.length === 0)
-                        this._cards.add_child(this._bridgeCard(p, { name: p.name, windows: [], error: '快照中无可展示的服务商（直连已覆盖或 CodexBar 未配置服务商）' }));
+                        this._cards.add_child(this._bridgeCard({ id: p.id, name: p.name, windows: [], error: '快照中无可展示的服务商（直连已覆盖或 CodexBar 未配置服务商）' }));
                 } else {
-                    this._cards.add_child(this._bridgeCard(p, { name: p.name, windows: [], error: st.kind === 'loading' ? null : st.error, loading: st.kind === 'loading' || st.kind === 'init' }));
+                    this._cards.add_child(this._bridgeCard({ id: p.id, name: p.name, windows: [], error: st.kind === 'loading' ? null : st.error, loading: st.kind === 'loading' || st.kind === 'init' }));
                 }
                 continue;
             }
@@ -343,7 +368,7 @@ class BalancePanel extends PanelMenu.Button {
         if (this._cards.get_n_children() === 0) {
             this._cards.add_child(new St.Label({
                 text: '没有启用的后端，请在设置中勾选「启用查询」',
-                style_class: 'ab-empty dim-label',
+                style_class: 'ab-empty',
                 x_align: Clutter.ActorAlign.CENTER,
                 x_expand: true,
             }));
@@ -361,111 +386,151 @@ class BalancePanel extends PanelMenu.Button {
             if (dt)
                 bits.push(`CodexBar 快照 ${dt.to_local().format('%H:%M')}`);
         }
-        this._footer.set_text(bits.join(' · '));
-        this._footer.visible = bits.length > 0;
+        let failed = false;
+        for (const p of this._providers) {
+            const kind = this._states.get(p.id).kind;
+            if (this._providerConfig(p).enabled && !['ok', 'loading', 'init'].includes(kind))
+                failed = true;
+        }
+        this._footPill.set_text(bits.join(' · '));
+        this._footPill.style_class = failed ? 'ab-foot-pill ab-foot-pill-warn' : 'ab-foot-pill';
+        this._foot.visible = bits.length > 0;
     }
 
-    _srcTag(text, cls) {
-        return new St.Label({ text, style_class: `ab-src-tag ${cls}`, y_align: Clutter.ActorAlign.CENTER });
+    _tag(text, cls) {
+        return new St.Label({ text, style_class: `ab-tag ${cls}`, y_align: Clutter.ActorAlign.CENTER });
+    }
+
+    _statusTag(kind) {
+        const text = {
+            ok: '正常', loading: '查询中…', unconfigured: '未配置',
+            auth: '密钥无效', unavail: '服务不可用', error: '查询失败', init: '待查询',
+        }[kind] ?? kind;
+        const cls = kind === 'ok' ? 'ab-tag-ok'
+            : ['loading', 'init', 'unconfigured'].includes(kind) ? 'ab-tag'
+                : 'ab-tag-err';
+        return this._tag(text, cls);
+    }
+
+    _logo(color, glyph, name) {
+        const box = new St.BoxLayout({ style_class: 'ab-logo', y_align: Clutter.ActorAlign.CENTER });
+        box.set_style(`background-color: ${safeHex(color) ?? '#5b5b5b'};`);
+        const text = glyph ?? (String(name ?? '?').trim().charAt(0).toUpperCase() || '?');
+        box.add_child(new St.Label({
+            text,
+            style_class: 'ab-logo-text',
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+        }));
+        return box;
+    }
+
+    _nameLabel(text) {
+        return new St.Label({
+            text,
+            style_class: 'ab-card-name',
+            x_align: Clutter.ActorAlign.START,
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+    }
+
+    _subLine(text, opts = {}) {
+        const row = new St.BoxLayout({ style_class: 'ab-sub', x_expand: true });
+        row.add_child(new St.Label({
+            text,
+            style_class: opts.err ? 'ab-sub-err' : '',
+            x_align: Clutter.ActorAlign.START,
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        }));
+        if (opts.tag)
+            row.add_child(this._tag(opts.tag, opts.tagCls ?? 'ab-tag-src'));
+        return row;
     }
 
     _directCard(p, cfg, st) {
         const card = new St.BoxLayout({ vertical: true, style_class: 'ab-card', x_expand: true });
         const head = new St.BoxLayout({ style_class: 'ab-card-head', x_expand: true });
-        head.add_child(new St.BoxLayout({
-            style_class: cfg.pinned ? 'ab-dot ab-dot-on' : 'ab-dot ab-dot-off',
-            y_align: Clutter.ActorAlign.CENTER,
-        }));
-        head.add_child(new St.Label({
-            text: this._displayName(p, cfg),
-            style_class: 'ab-card-name',
-            x_align: Clutter.ActorAlign.START,
-            x_expand: true,
-            y_align: Clutter.ActorAlign.CENTER,
-        }));
-        head.add_child(this._srcTag('直连', 'ab-src-direct'));
-        head.add_child(this._statusLabel(st.kind));
+        const logo = DIRECT_LOGOS[p.id] ?? {};
+        head.add_child(this._logo(logo.color, logo.text, this._displayName(p, cfg)));
+        head.add_child(this._nameLabel(this._displayName(p, cfg)));
+        head.add_child(this._statusTag(st.kind));
+        if (st.kind === 'ok') {
+            head.add_child(new St.Label({ text: '总额', style_class: 'ab-money-cap', y_align: Clutter.ActorAlign.CENTER }));
+            head.add_child(new St.Label({
+                text: st.entries.map(e => fmtAmount(e.currency, e.total)).join(' '),
+                style_class: 'ab-money-big',
+                y_align: Clutter.ActorAlign.CENTER,
+            }));
+        }
         card.add_child(head);
 
         if (st.kind === 'ok') {
             for (const [i, e] of st.entries.entries()) {
                 if (i > 0)
                     card.add_child(new St.BoxLayout({ style_class: 'ab-cur-sep', x_expand: true }));
-                card.add_child(this._kv('总额', fmtAmount(e.currency, e.total), { big: true }));
+                const bits = [];
                 if (e.toppedUp !== null && e.toppedUp !== undefined)
-                    card.add_child(this._kv('充值', fmtAmount(e.currency, e.toppedUp), { muted: true }));
+                    bits.push(`充值 ${fmtAmount(e.currency, e.toppedUp)}`);
                 if (e.granted !== null && e.granted !== undefined)
-                    card.add_child(this._kv('赠送', fmtAmount(e.currency, e.granted), { muted: true }));
+                    bits.push(`赠送 ${fmtAmount(e.currency, e.granted)}`);
+                card.add_child(this._subLine(bits.join(' · '), { tag: '直连' }));
             }
         } else if (st.kind !== 'loading' && st.kind !== 'init') {
-            card.add_child(this._kv('错误', st.error ?? st.kind));
+            if (st.error)
+                card.add_child(this._subLine(st.error, { err: true, tag: '直连' }));
         }
         return card;
     }
 
-    _statusLabel(kind) {
-        const dotText = {
-            ok: '正常', loading: '查询中…', unconfigured: '未配置',
-            auth: '密钥无效', unavail: '服务不可用', error: '查询失败', init: '待查询',
-        }[kind] ?? kind;
-        return new St.Label({
-            text: dotText,
-            style_class: `ab-status ab-status-${kind}`,
-            x_align: Clutter.ActorAlign.END,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-    }
-
-    _bridgeCard(p, card) {
+    _bridgeCard(card) {
         const box = new St.BoxLayout({ vertical: true, style_class: 'ab-card', x_expand: true });
         const head = new St.BoxLayout({ style_class: 'ab-card-head', x_expand: true });
-        const cfg = this._providerConfig(p);
-        head.add_child(new St.BoxLayout({
-            style_class: cfg.pinned ? 'ab-dot ab-dot-on' : 'ab-dot ab-dot-off',
-            y_align: Clutter.ActorAlign.CENTER,
-        }));
-        head.add_child(new St.Label({
-            text: card.name,
-            style_class: 'ab-card-name',
-            x_align: Clutter.ActorAlign.START,
-            x_expand: true,
-            y_align: Clutter.ActorAlign.CENTER,
-        }));
+        head.add_child(this._logo(safeHex(card.accent) ?? accentForId(card.id), card.name.charAt(0).toUpperCase(), card.name));
+        head.add_child(this._nameLabel(card.name));
         if (card.badge)
-            head.add_child(this._srcTag(card.badge, 'ab-src-plan'));
-        head.add_child(this._srcTag('CodexBar', 'ab-src-bridge'));
-        head.add_child(this._statusLabel(card.loading ? 'loading' : card.error ? 'error' : 'ok'));
+            head.add_child(this._tag(card.badge, 'ab-tag-ok'));
+        if (card.loading)
+            head.add_child(this._statusTag('loading'));
+        else if (card.error)
+            head.add_child(this._statusTag('error'));
+        head.add_child(this._tag('CodexBar', 'ab-tag'));
         box.add_child(head);
 
-        const mode = this._settings.get_string('window-display');
-        for (const w of card.windows ?? [])
-            box.add_child(mode === 'text' ? this._windowText(w) : this._windowBar(w));
-
+        const metaBits = [];
+        if (card.todayUSD !== null && card.todayUSD !== undefined)
+            metaBits.push(`今日费用 $${card.todayUSD.toFixed(2)}`);
         if (card.credits)
-            box.add_child(this._kv('额度', fmtCredits(card.credits), { muted: true }));
-        else if (card.todayUSD !== null && card.todayUSD !== undefined)
-            box.add_child(this._kv('今日费用', `$${card.todayUSD.toFixed(2)}`, { muted: true }));
+            metaBits.push(`额度 ${fmtCredits(card.credits)}`);
+        const meta = metaBits.join(' · ') || null;
 
+        const mode = this._settings.get_string('window-display');
+        for (const [i, w] of (card.windows ?? []).entries())
+            box.add_child(mode === 'text' ? this._windowText(w) : this._windowBar(w, i === 0 ? meta : null));
+
+        if (meta && !card.windows?.length)
+            box.add_child(this._subLine(meta));
         if (card.error)
-            box.add_child(this._kv('错误', card.error));
+            box.add_child(this._subLine(card.error, { err: true }));
         return box;
     }
 
-    _windowBar(w) {
+    _windowBar(w, meta) {
         const wrap = new St.BoxLayout({ vertical: true, style_class: 'ab-win', x_expand: true });
         const top = new St.BoxLayout({ style_class: 'ab-win-top', x_expand: true });
+        top.add_child(new St.Label({ text: `剩余 ${Math.round(w.remaining)}%`, style_class: 'ab-win-rem', y_align: Clutter.ActorAlign.CENTER }));
         top.add_child(new St.Label({
-            text: `剩余 ${Math.round(w.remaining)}% · ${w.label}`,
+            text: `· ${w.label}`,
             style_class: 'ab-win-label',
             x_expand: true,
             x_align: Clutter.ActorAlign.START,
+            y_align: Clutter.ActorAlign.CENTER,
         }));
-        if (w.resetAt)
-            top.add_child(new St.Label({ text: fmtReset(w.resetAt), style_class: 'ab-win-reset dim-label' }));
         wrap.add_child(top);
 
         // StDrawingArea requests 0 height; a fixed-height BoxLayout (CSS height,
-        // like .ab-sep) allocates the 6px band and the area fills it.
+        // like .ab-cur-sep) allocates the 6px band and the area fills it.
         const track = new St.BoxLayout({ style_class: 'ab-win-bar', x_expand: true });
         const area = new St.DrawingArea({ x_expand: true, y_expand: true });
         area.connect('repaint', a => {
@@ -484,22 +549,34 @@ class BalancePanel extends PanelMenu.Button {
         });
         track.add_child(area);
         wrap.add_child(track);
+
+        const metaRow = new St.BoxLayout({ style_class: 'ab-win-meta', x_expand: true });
+        const left = new St.BoxLayout({ style_class: 'ab-win-left', x_expand: true, x_align: Clutter.ActorAlign.START });
+        if (w.remaining < 20)
+            left.add_child(new St.Label({ text: '即将用尽', style_class: 'ab-win-crit', y_align: Clutter.ActorAlign.CENTER }));
+        if (meta)
+            left.add_child(new St.Label({ text: meta, style_class: 'ab-win-cost', y_align: Clutter.ActorAlign.CENTER }));
+        metaRow.add_child(left);
+        if (w.resetAt)
+            metaRow.add_child(new St.Label({ text: fmtReset(w.resetAt), style_class: 'ab-win-reset', y_align: Clutter.ActorAlign.CENTER }));
+        wrap.add_child(metaRow);
         return wrap;
     }
 
     _windowText(w) {
-        const row = new St.BoxLayout({ style_class: 'ab-kv', x_expand: true });
+        const row = new St.BoxLayout({ style_class: 'ab-win', x_expand: true });
         row.add_child(new St.Label({
             text: w.label,
             x_align: Clutter.ActorAlign.START,
             x_expand: true,
-            style_class: 'ab-kv-key',
+            style_class: 'ab-win-label',
+            y_align: Clutter.ActorAlign.CENTER,
         }));
-        const suffix = w.resetAt ? `  ·  ${fmtReset(w.resetAt)}` : '';
+        const suffix = w.resetAt ? ` · ${fmtReset(w.resetAt)}` : '';
         row.add_child(new St.Label({
             text: `剩余 ${Math.round(w.remaining)}%${suffix}`,
-            x_align: Clutter.ActorAlign.END,
-            style_class: 'ab-kv-value',
+            style_class: w.remaining < 20 ? 'ab-win-rem ab-win-crit' : 'ab-win-rem',
+            y_align: Clutter.ActorAlign.CENTER,
         }));
         return row;
     }
@@ -510,24 +587,6 @@ class BalancePanel extends PanelMenu.Button {
         cr.arc(x + w - r, y + r, r, -Math.PI / 2, Math.PI / 2);
         cr.arc(x + r, y + r, r, Math.PI / 2, 3 * Math.PI / 2);
         cr.closePath();
-    }
-
-    _kv(k, v, opts = {}) {
-        const row = new St.BoxLayout({ style_class: 'ab-kv', x_expand: true });
-        const kl = new St.Label({
-            text: k,
-            x_align: Clutter.ActorAlign.START,
-            x_expand: true,
-            style_class: opts.muted ? 'ab-kv-key dim-label' : 'ab-kv-key',
-        });
-        const vl = new St.Label({
-            text: v,
-            x_align: Clutter.ActorAlign.END,
-            style_class: opts.big ? 'ab-kv-value ab-kv-big' : 'ab-kv-value',
-        });
-        row.add_child(kl);
-        row.add_child(vl);
-        return row;
     }
 
     /* ── fetching ─────────────────────────────────────── */

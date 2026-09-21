@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-这是一个 GNOME Shell 扩展仓库。核心运行时代码在根目录：`extension.js` 负责顶栏指示器、余额刷新和面板 UI，`prefs.js` 负责扩展设置窗口，`stylesheet.css` 存放样式，`metadata.json` 定义扩展元数据。服务商逻辑放在 `providers/`，例如 `deepseek.js`、`kimi.js`、`generic.js`，以及桥接型 provider `codexbar.js`。GSettings schema 位于 `schemas/`，截图等文档资产位于 `docs/`。发布流水线在 `.github/workflows/release.yml`。
+这是一个 GNOME Shell 扩展仓库。核心运行时代码在根目录：`extension.js` 负责顶栏指示器、余额刷新和面板 UI，`prefs.js` 负责扩展设置窗口，`stylesheet.css` 存放样式，`metadata.json` 定义扩展元数据。服务商逻辑放在 `providers/`，例如 `deepseek.js`、`generic.js`，以及桥接型 provider `codexbar.js`。GSettings schema 位于 `schemas/`，截图等文档资产位于 `docs/`。发布流水线在 `.github/workflows/release.yml`。
 
 ## Build, Test, and Development Commands
 
@@ -22,6 +22,8 @@ gjs/GNOME 46 实测陷阱（均已踩过）：
 - `St.DrawingArea` 自身请求高度为 0，也没有 `request_height`/`set_content_height`：进度条要把 `DrawingArea` 放进一个 CSS 固定高度的 `St.BoxLayout` 容器（与 `.ab-sep` 同法），并设 `x_expand`/`y_expand`。
 - `area.get_surface_size()` 返回 `[width, height]` 两个值，不是四个。
 - 子进程判错用 `get_exit_status() !== 0`（无 `if_success()`）；临时文件名用 `GLib.get_monotonic_time()` 生成（`GLib.get_pid` 不存在），先读文件再删除。
+- GNOME 46 的 `St.BoxLayout` 没有 `spacing` 属性：构造时传 `spacing: 6` 会抛 `No property spacing on StBoxLayout`，间距一律写在 CSS 类里。
+- 面板自绘样式：`this.menu.box` 本身就带主题的 `popup-menu-content` 类（没有单独的外层容器），覆盖主题规则要用复合选择器 `.popup-menu-content.ab-popup`（靠特异性取胜，不依赖加载顺序）。快照里的 `display.accentColor` 会进 CSS 字符串，必须先按 `^#[0-9a-fA-F]{6}$` 白名单校验再用。
 
 新增 provider 需同步五处（漏一处，设置界面或打包校验就会坏）：
 

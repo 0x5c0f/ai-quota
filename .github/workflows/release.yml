@@ -58,10 +58,9 @@ jobs:
           for f in metadata.json extension.js prefs.js stylesheet.css \
                    schemas/org.gnome.shell.extensions.api-balance.gschema.xml \
                    schemas/org.gnome.shell.extensions.api-balance.deepseek.gschema.xml \
-                   schemas/org.gnome.shell.extensions.api-balance.kimi.gschema.xml \
                    schemas/org.gnome.shell.extensions.api-balance.custom.gschema.xml \
                    schemas/org.gnome.shell.extensions.api-balance.codexbar.gschema.xml \
-                   providers/deepseek.js providers/kimi.js providers/generic.js providers/codexbar.js; do
+                   providers/deepseek.js providers/generic.js providers/codexbar.js; do
             unzip -l "$UUID.zip" "$f" | grep -q "$f" || { echo "missing in zip: $f"; exit 1; }
           done
 

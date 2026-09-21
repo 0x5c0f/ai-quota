@@ -4,10 +4,11 @@ import Gtk from 'gi://Gtk';
 
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-// Keep in sync with PROVIDERS in extension.js and <child> entries in the schema.
+// Direct providers with an api-key; keep in sync with buildProviders() in
+// extension.js and the <child> entries in the schema. The custom provider is
+// not listed here — its card is built from its own child schema.
 const PROVIDERS = [
     { id: 'deepseek', name: 'DeepSeek', defaultBaseUrl: 'https://api.deepseek.com' },
-    { id: 'kimi', name: 'Kimi', defaultBaseUrl: 'https://api.moonshot.cn' },
 ];
 
 export default class ApiBalancePrefs extends ExtensionPreferences {

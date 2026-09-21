@@ -1,10 +1,51 @@
+/* Self-drawn card UI. The panel deliberately does not follow the system
+ * theme: every colour below is fixed, so the cards always read as designed
+ * regardless of the user's theme (we cannot validate against all of them).
+ * Only the top bar indicator borrows a translucent background. */
+
+/* ── top bar ─────────────────────────────────────────── */
+
+/* No background here on purpose: the button's allocation fills the bar height,
+ * so a rounded box reads as a slab. The theme's own hover/checked state is used. */
 .ab-panel-box {
-  spacing: 4px;
-  padding: 0 4px;
+  spacing: 5px;
 }
 
-.ab-summary {
-  font-size: 0.9em;
+.ab-icon {
+  font-size: 0.85em;
+}
+
+.ab-summary-box {
+  spacing: 5px;
+}
+
+.ab-top-name {
+  font-size: 0.82em;
+  color: rgba(240, 240, 240, 0.62);
+}
+
+.ab-top-value {
+  font-size: 0.86em;
+  font-weight: 700;
+  color: #f6f5f4;
+}
+
+.ab-top-pct {
+  color: #7de3a4;
+}
+
+.ab-top-err {
+  color: #f66151;
+}
+
+.ab-top-dim {
+  color: rgba(240, 240, 240, 0.55);
+  font-weight: 400;
+}
+
+.ab-top-sep {
+  color: rgba(240, 240, 240, 0.28);
+  font-size: 0.86em;
 }
 
 .ab-badge {
@@ -12,161 +53,208 @@
   font-weight: bold;
 }
 
-.ab-popup {
-  width: 372px;
+/* ── popup shell ─────────────────────────────────────── */
+
+/* Compound selector: beats the theme's .popup-menu-content by specificity. */
+.popup-menu-content.ab-popup {
+  width: 400px;
+  padding: 0;
+  border: 1px solid #454545;
+  border-radius: 16px;
+  background-color: rgba(30, 30, 30, 0.97);
+  color: #f6f5f4;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
 }
 
 .ab-header {
-  padding: 8px 12px 4px 12px;
+  spacing: 6px;
+  padding: 14px 18px 6px 18px;
 }
 
 .ab-title {
-  font-size: 1.1em;
+  font-size: 15px;
   font-weight: 700;
+  color: #f6f5f4;
 }
+
+.ab-iconbtn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #f6f5f4;
+}
+
+.ab-iconbtn:hover {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.ab-iconbtn:active {
+  background-color: rgba(255, 255, 255, 0.24);
+}
+
+/* ── cards ───────────────────────────────────────────── */
 
 .ab-cards {
-  spacing: 8px;
-  padding: 4px 12px;
-}
-
-.ab-empty {
-  padding: 16px 0;
-  font-size: 0.9em;
+  spacing: 10px;
+  padding: 6px 14px 14px 14px;
 }
 
 .ab-card {
-  background-color: rgba(128, 128, 128, 0.12);
-  border-radius: 10px;
-  padding: 10px 12px;
+  background-color: rgba(255, 255, 255, 0.055);
+  border-radius: 12px;
+  padding: 12px 14px;
   spacing: 2px;
 }
 
 .ab-card-head {
   spacing: 8px;
-  padding-bottom: 6px;
 }
 
-.ab-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 5px;
+.ab-logo {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background-color: #5b5b5b;
 }
 
-.ab-dot-on { background-color: #3584e4; }
-.ab-dot-off { background-color: rgba(128, 128, 128, 0.55); }
+.ab-logo-text {
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+}
 
 .ab-card-name {
+  font-size: 13.5px;
   font-weight: 700;
+  color: #f6f5f4;
 }
 
-.ab-status {
-  font-size: 0.85em;
+.ab-tag {
+  font-size: 10.5px;
+  border-radius: 5px;
+  padding: 1px 7px;
+  background-color: rgba(255, 255, 255, 0.10);
+  color: #b0afad;
 }
 
-.ab-status-ok { color: #2ec27e; }
-.ab-status-loading,
-.ab-status-init,
-.ab-status-unconfigured { color: #9a9996; }
-.ab-status-auth,
-.ab-status-error,
-.ab-status-unavail { color: #e01b24; }
-
-.ab-kv {
-  padding: 3px 0;
-  spacing: 12px;
+.ab-tag-ok {
+  background-color: #1f4330;
+  color: #6ade9a;
 }
 
-.ab-kv-key {
-  font-size: 0.92em;
+.ab-tag-src {
+  background-color: #233a55;
+  color: #8fbcff;
 }
 
-.ab-kv-value {
-  font-variant-numeric: tabular-nums;
+.ab-tag-err {
+  background-color: #3d2020;
+  color: #f66151;
 }
 
-.ab-kv-big {
+.ab-money-cap {
+  font-size: 12px;
+  color: #c7c6c4;
+}
+
+.ab-money-big {
+  font-size: 16px;
   font-weight: 700;
-  font-size: 1.05em;
+  color: #f6f5f4;
+}
+
+.ab-sub {
+  font-size: 12px;
+  color: #9a9996;
+  spacing: 8px;
+  margin-top: 6px;
+}
+
+.ab-sub-err {
+  color: #f66151;
 }
 
 .ab-cur-sep {
   height: 1px;
-  margin: 5px 0;
-  background-color: rgba(128, 128, 128, 0.3);
+  margin: 7px 0 1px 0;
+  background-color: rgba(255, 255, 255, 0.09);
 }
 
-.ab-sep {
-  height: 1px;
-  margin: 6px 12px;
-  background-color: rgba(128, 128, 128, 0.3);
-}
-
-.ab-actions {
-  spacing: 8px;
-  padding: 4px 12px 10px 12px;
-}
-
-.ab-btn {
-  border-radius: 99px;
-  padding: 4px 16px;
-  background-color: rgba(128, 128, 128, 0.18);
-}
-
-.ab-btn:hover {
-  background-color: rgba(128, 128, 128, 0.32);
-}
-
-.ab-btn-icon {
-  padding: 4px 10px;
-}
+/* ── quota windows ───────────────────────────────────── */
 
 .ab-win {
-  spacing: 3px;
-  padding: 4px 0 2px 0;
+  spacing: 4px;
+  margin-top: 9px;
 }
 
 .ab-win-top {
-  spacing: 8px;
+  spacing: 5px;
+}
+
+.ab-win-rem {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f6f5f4;
 }
 
 .ab-win-label {
-  font-size: 0.88em;
+  font-size: 12px;
+  color: #c7c6c4;
 }
 
-.ab-win-reset {
-  font-size: 0.8em;
+.ab-win-meta {
+  spacing: 6px;
+  margin-top: 3px;
 }
 
-.ab-win-bar {
-  height: 6px;
-  margin: 1px 0 2px 0;
-}
-
-.ab-src-tag {
-  font-size: 0.72em;
-  border-radius: 5px;
-  padding: 1px 7px;
-  background-color: rgba(128, 128, 128, 0.22);
-  color: #c0bfbc;
-}
-
-.ab-src-direct {
-  background-color: rgba(53, 132, 228, 0.18);
-  color: #78aeff;
-}
-
-.ab-src-bridge {
-  background-color: rgba(128, 128, 128, 0.22);
+.ab-win-cost {
+  font-size: 11px;
   color: #9a9996;
 }
 
-.ab-src-plan {
-  background-color: rgba(46, 194, 126, 0.16);
-  color: #2ec27e;
+.ab-win-crit {
+  font-size: 11.5px;
+  color: #f66151;
 }
 
-.ab-footer {
-  font-size: 0.78em;
-  padding: 2px 12px 0 12px;
+.ab-win-reset {
+  font-size: 11.5px;
+  color: #9a9996;
+}
+
+.ab-win-left {
+  spacing: 6px;
+}
+
+/* St.DrawingArea requests 0 height: the track allocates the band. */
+.ab-win-bar {
+  height: 6px;
+}
+
+/* ── footer / empty state ────────────────────────────── */
+
+.ab-foot {
+  padding: 0 18px 14px 18px;
+}
+
+.ab-foot-pill {
+  font-size: 11.5px;
+  border-radius: 6px;
+  padding: 2px 8px;
+  background-color: #1f4330;
+  color: #6ade9a;
+}
+
+.ab-foot-pill-warn {
+  background-color: #3d2020;
+  color: #f66151;
+}
+
+.ab-empty {
+  padding: 16px 0;
+  font-size: 12.5px;
+  color: #9a9996;
 }

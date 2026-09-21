@@ -15,6 +15,7 @@ function getPath(obj, path) {
 export default class GenericProvider {
     id = 'custom';
     name = '自定义';
+    logo = { color: '#00b0ff' }; // no text: the card shows the user's own name initial
     defaultBaseUrl = '';
 
     // Only render a card once the user has named it or given it a URL.

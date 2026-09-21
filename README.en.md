@@ -29,6 +29,9 @@ Dropdown panel (with the top bar balance display):
   (Claude, Gemini, Cursor, and more).
 - Quota windows (session / weekly, etc.) rendered as progress bars with reset
   countdowns and usage-based colors.
+- The dropdown is a self-drawn dark card UI that deliberately does not follow the
+  system theme, so it looks the same under any theme and we do not have to chase
+  community themes.
 - Reads custom endpoint response fields via JSON dot paths.
 - No telemetry; never contacts third-party services you have not configured.
 
@@ -39,7 +42,6 @@ Current built-in providers:
 | Provider | Endpoint | Authentication |
 | --- | --- | --- |
 | DeepSeek | `/user/balance` | `Authorization: Bearer <API Key>` |
-| Kimi | `/v1/users/me/balance` | `Authorization: Bearer <API Key>` |
 
 In addition, other compatible balance-query endpoints can be connected through
 the "Custom" configuration.
@@ -249,7 +251,6 @@ actual response structure.
 ├── stylesheet.css        # UI styles
 ├── providers/
 │   ├── deepseek.js       # DeepSeek provider
-│   ├── kimi.js           # Kimi provider
 │   ├── generic.js        # custom provider
 │   └── codexbar.js       # CodexBar bridge provider
 ├── schemas/
