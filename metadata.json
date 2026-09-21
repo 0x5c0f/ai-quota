@@ -5,5 +5,5 @@
   "settings-schema": "org.gnome.shell.extensions.api-balance",
   "shell-version": ["45", "46", "47", "48", "49", "50"],
   "url": "https://github.com/0x5c0f/api-balance",
-  "version": 5
+  "version": 6
 }
