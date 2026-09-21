@@ -20,23 +20,73 @@ const KIND_LABELS = {
     session: '会话',
     five_hour: '5 小时',
     fiveHour: '5 小时',
+    hourly: '小时',
+    daily: '日',
     weekly: '周',
     week: '周',
-    daily: '日',
     monthly: '月',
     month: '月',
+    prompts: '请求数',
+    tertiary: '第三档',
+    other: '配额',
+    orb: 'Orb',
 };
 
+function fmtSpan(mins) {
+    const hours = mins / 60;
+    if (hours < 48)
+        return `${Math.round(hours)} 小时`;
+    const days = hours / 24;
+    return days < 60 ? `${Math.round(days)} 天` : `${Math.round(days / 30)} 个月`;
+}
+
+// Snapshot `kind` is an open vocabulary (producers pass NamedRateWindow.id
+// straight through, e.g. "kimi-monthly"), so an unmapped kind gets a generic
+// label rather than leaking a raw id into the panel.
 function windowLabel(w) {
     if (w.label)
         return String(w.label);
-    let label = KIND_LABELS[w.kind] ?? (w.kind ? String(w.kind) : '窗口');
+    const known = KIND_LABELS[w.kind];
+    let label = known ?? '配额窗口';
     const mins = num(w.windowMinutes);
-    if (mins && !KIND_LABELS[w.kind])
-        label = `${label}（${Math.round(mins / 60)} 小时）`;
-    else if (mins && w.kind === 'session' && mins !== 300)
-        label = `会话（${Math.round(mins / 60)} 小时）`;
+    if (!mins)
+        return label;
+    // The built-in kinds have a fixed length; anything else (or a session lane
+    // the producer widened) says how long the window actually is.
+    if (!known || (w.kind === 'session' && mins !== 300))
+        label = `${label}（${fmtSpan(mins)}）`;
     return label;
+}
+
+// A lane marked `idle` reports no usage for a model family the client should
+// not draw (docs/dashboard-api.md); the built-in web UI drops it the same way.
+function readWindows(list) {
+    const out = [];
+    for (const w of Array.isArray(list) ? list : []) {
+        if (!w || typeof w !== 'object' || w.idle === true)
+            continue;
+        let remaining = num(w.remainingPercent);
+        const used = num(w.usedPercent);
+        if (remaining === null && used !== null)
+            remaining = 100 - used;
+        if (remaining === null)
+            continue; // absent is not zero
+        out.push({
+            label: windowLabel(w),
+            remaining: Math.max(0, Math.min(100, remaining)),
+            resetAt: typeof w.resetAt === 'string' ? w.resetAt : null,
+        });
+    }
+    return out;
+}
+
+// Row-level and account-level diagnostics are plain strings or {code,message,kind}.
+function readError(e) {
+    if (!e)
+        return null;
+    return typeof e === 'object'
+        ? String(e.message ?? JSON.stringify(e))
+        : String(e);
 }
 
 export default class CodexBarProvider {
@@ -86,6 +136,7 @@ export default class CodexBarProvider {
             return { ok: false, error: `不支持的快照格式 (schemaVersion=${data.schemaVersion})` };
 
         const cards = [];
+        const staleAfter = num(data.staleAfterSeconds);
         for (const pv of data.providers) {
             if (!pv || typeof pv !== 'object' || pv.enabled === false)
                 continue;
@@ -99,22 +150,21 @@ export default class CodexBarProvider {
             if (plan)
                 card.badge = String(plan);
 
-            const windows = Array.isArray(pv.windows) ? pv.windows : [];
-            card.windows = [];
-            for (const w of windows) {
-                if (!w || typeof w !== 'object')
-                    continue;
-                let remaining = num(w.remainingPercent);
-                const used = num(w.usedPercent);
-                if (remaining === null && used !== null)
-                    remaining = 100 - used;
-                if (remaining === null)
-                    continue; // absent is not zero
-                card.windows.push({
-                    label: windowLabel(w),
-                    remaining: Math.max(0, Math.min(100, remaining)),
-                    resetAt: typeof w.resetAt === 'string' ? w.resetAt : null,
-                });
+            card.windows = readWindows(pv.windows);
+            if (typeof pv.updatedAt === 'string')
+                card.updatedAt = pv.updatedAt;
+
+            if (!card.windows.length && Array.isArray(pv.accounts)) {
+                // Multi-account integrations (claude-swap) can keep usage only on
+                // the account rows; the ambient row stays empty for a non-active
+                // slot, so fall back to the active account rather than showing blank.
+                const acc = pv.accounts.find(a => a && a.active === true)
+                    ?? pv.accounts.find(a => a && typeof a === 'object');
+                if (acc) {
+                    card.windows = readWindows(acc.windows);
+                    card.updatedAt ??= typeof acc.updatedAt === 'string' ? acc.updatedAt : null;
+                    card.note = readError(acc.error);
+                }
             }
 
             const credits = pv.credits && typeof pv.credits === 'object' ? pv.credits : null;
@@ -123,19 +173,20 @@ export default class CodexBarProvider {
                 card.credits = { remaining: rem, unit: String(credits.unit ?? '') };
             if (pv.cost && num(pv.cost.todayUSD) !== null)
                 card.todayUSD = num(pv.cost.todayUSD);
-            // Real snapshots carry row-level errors as {code,message,kind}.
-            let err = null;
-            if (pv.error) {
-                err = typeof pv.error === 'object'
-                    ? String(pv.error.message ?? JSON.stringify(pv.error))
-                    : String(pv.error);
-            }
-            card.error = err;
+            card.error = readError(pv.error);
+            if (!card.error && typeof pv.accountsError === 'string')
+                card.note ??= pv.accountsError;
+            if (staleAfter !== null)
+                card.staleAfter = staleAfter;
 
             if (card.windows.length || card.credits || card.error || card.todayUSD !== undefined)
                 cards.push(card);
         }
 
-        return { ok: true, cards, generatedAt: typeof data.generatedAt === 'string' ? data.generatedAt : null };
+        return {
+            ok: true,
+            cards,
+            generatedAt: typeof data.generatedAt === 'string' ? data.generatedAt : null,
+        };
     }
 }

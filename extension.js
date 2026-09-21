@@ -69,6 +69,26 @@ function fmtReset(iso) {
     return `${local.format('%-m月%-d日')} ${local.format('%H:%M')} 重置`;
 }
 
+// Age of a snapshot timestamp in seconds, or null when it cannot be parsed.
+function ageSeconds(iso) {
+    if (!iso)
+        return null;
+    const dt = GLib.DateTime.new_from_iso8601(iso, null);
+    if (!dt)
+        return null;
+    return Math.max(0, GLib.DateTime.new_now_utc().to_unix() - dt.to_unix());
+}
+
+function fmtAgo(secs) {
+    if (secs < 90)
+        return '刚刚更新';
+    if (secs < 3600)
+        return `${Math.round(secs / 60)}分前更新`;
+    if (secs < 86400)
+        return `${Math.floor(secs / 3600)}小时前更新`;
+    return `${Math.floor(secs / 86400)}天前更新`;
+}
+
 function windowColor(remaining) {
     if (remaining < 20)
         return [0.878, 0.106, 0.141]; // red
@@ -561,6 +581,11 @@ class BalancePanel extends PanelMenu.Button {
             head.add_child(this._statusTag('loading'));
         else if (card.error)
             head.add_child(this._statusTag('error'));
+        // CodexBar refreshes each row on its own clock: a row older than the
+        // snapshot's staleness hint is labelled instead of looking live.
+        const age = card.staleAfter === undefined ? null : ageSeconds(card.updatedAt);
+        if (age !== null && age > card.staleAfter)
+            head.add_child(this._tag(fmtAgo(age), 'ab-tag'));
         head.add_child(this._tag('CodexBar', 'ab-tag'));
         box.add_child(head);
 
@@ -579,6 +604,8 @@ class BalancePanel extends PanelMenu.Button {
             box.add_child(this._subLine(meta));
         if (card.error)
             box.add_child(this._subLine(card.error, { err: true }));
+        else if (card.note)
+            box.add_child(this._subLine(card.note));
         return box;
     }
 

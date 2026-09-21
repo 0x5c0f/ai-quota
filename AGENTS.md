@@ -47,8 +47,10 @@ gjs/GNOME 46 实测陷阱（均已踩过）：
 - 子 schema 没有 `api-key`，改为传输配置：`mode`（默认 `cli`）、`url`、`token`、`command`；`prefs.js` 中它属于「桥接层」分组，不进 provider 列表。
 - 两种传输：HTTP 用 `buildRequest(cfg)`（GET `cfg.url`，带 `Authorization: Bearer <token>`）；CLI 用 `cliArgs(cfg)`（`extension.js` 以 `Gio.Subprocess` 执行，快照从标准输出读取，用 `get_exit_status()` 判错——`if_success()` 在 gjs 中不存在）。不写临时文件：shexli 会报 `EGO-X-004` 同步文件 IO 警告，且 `--output` 落的是 0644、里面带账号邮箱。
   注意：`codexbar serve` 的 `/dashboard/v1/snapshot` 强制令牌鉴权，**未设令牌也一律 401**（fail-closed），且令牌只能走 `--dashboard-token`/`CODEXBAR_DASHBOARD_TOKEN`，不在 codexbar 的 config.json 里；CLI 模式直接读 `~/.config/codexbar/config.json`，无需任何额外配置，故为默认。
-- `parse(status, body, cfg, skipIds)` 返回 `{ok:true, cards, generatedAt}` 而非 `entries`；`cards` 每项为 `{id,name,badge?,windows,credits?,todayUSD?,error?}`，`windows` 每项为 `{label,remaining,resetAt}`（`remaining` 由快照 `remainingPercent` 或 `100-usedPercent` 推出并夹到 0–100，两者都缺就跳过该窗口）。
-- 真实快照的形状差异（已按实测适配，勿改回）：套餐名在 `identity.plan` 而非顶层 `plan`；行级 `error` 是 `{code,message,kind}` 对象（取 `message`）；行上有 `enabled` 字段（`false` 时跳过）；`cost.todayUSD` 可以单独存在（无窗口无额度也是有效卡片）。
+- `parse(status, body, cfg, skipIds)` 返回 `{ok:true, cards, generatedAt}` 而非 `entries`；`cards` 每项为 `{id,name,badge?,windows,credits?,todayUSD?,error?,note?,updatedAt?,staleAfter?}`，`windows` 每项为 `{label,remaining,resetAt}`（`remaining` 由快照 `remainingPercent` 或 `100-usedPercent` 推出并夹到 0–100，两者都缺就跳过该窗口）。
+- 兼容性规则（只在我们这侧兜住，不向上游提要求）：`w.idle === true` 的窗口必须丢弃（上游文档与内置 Web UI 同此处理，键只在为真时出现）；`kind` 是开放词表（生产者把 `NamedRateWindow.id` 原样传出来，如 `kimi-monthly`），未知 `kind` 走 `KIND_LABELS` 兜底标签「配额窗口」，绝不把裸 id 渲染进面板，有 `windowMinutes` 时按时长标注；行 `windows` 为空且有 `accounts` 时取活动账号（`active === true`，否则第一个对象）的窗口与 `updatedAt`；`accountsError` 是整体采集失败的诊断，只作为 `note` 中性提示行显示，不标错误状态、不影响 `skipIds` 判定；`updatedAt` 超过顶层 `staleAfterSeconds` 时由 `extension.js` 打「N 分/小时前更新」灰标签（`GLib` 只在 UI 层用，provider 保持纯函数）。
+- 计费型服务商（DeepSeek/OpenRouter…）在快照里往往只有一个 100% 的占位窗口（`label: "Balance"`）、`credits`/`cost` 全为 null —— 金额只存在于上游的 `resetDescription` 人读字符串里，`makeWindow` 不投影它。不要为此解析 `resetDescription`（`/usage` 无版本、无鉴权、易碎）；README 已把边界写死：看余额用直连服务商。
+- 真实快照的形状差异（已按实测适配，勿改回）：套餐名在 `identity.plan` 而非顶层 `plan`；行级 `error` 是 `{code,message,kind}` 对象（取 `message`）；行上有 `enabled` 字段（`false` 时跳过）；`cost.todayUSD` 可以单独存在（无窗口无额度也是有效卡片）。窗口可能完全没有 `label`（旧生产者只给 `kind`/`usedPercent`/`remainingPercent`/`resetAt`/`windowMinutes`），所以 `KIND_LABELS` 是实际生效的文案来源；顶层 `staleAfterSeconds`/`host` 也是新增键，缺失时不标陈旧。
 - 顶栏兜底：桥接置顶时取最紧窗口，快照里没有任何窗口则退回额度或今日费用（否则纯计费类服务商会让顶栏沉默）。
 - `skipIds` 是已启用直连 provider 的 id 集合：快照中同 id 的桥接卡片必须丢弃，以直连数据为准。
 

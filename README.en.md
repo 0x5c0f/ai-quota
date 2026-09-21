@@ -206,6 +206,23 @@ curl -sf -H "Authorization: Bearer your-token" \
   spend.
 - The panel footer shows this extension's last refresh time and the generation
   time of the CodexBar snapshot.
+- The snapshot is parsed as if every key could be missing: only numbers that are
+  actually present are shown, a window without one is never read as 0%, and keys
+  added upstream do not break older releases.
+- Windows the producer marks as `idle` (a model family with no usage) are not
+  drawn; a window kind we do not know is labelled "配额窗口" generically, with the
+  window length when available, so no upstream internal id leaks into the panel.
+- Some multi-account integrations (claude-swap) keep usage only on the account
+  rows: when the row itself has no windows, the active account's windows are
+  used. A whole-adapter failure (`accountsError`) is shown as an informational
+  line instead of marking the card as failed.
+- When a row's `updatedAt` is older than the snapshot's staleness hint
+  (`staleAfterSeconds`), the card is labelled "N 分/小时前更新" so it reads as
+  stale data rather than live.
+- Boundary: the bridge shows CodexBar's **quota window / credit** view.
+  Balance-billed providers (DeepSeek, OpenRouter, …) usually expose only a
+  placeholder 100% window in the snapshot, with no amount at all — use the
+  matching direct provider to see a balance.
 
 ## Installation
 
