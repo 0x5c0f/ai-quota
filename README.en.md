@@ -172,9 +172,9 @@ Notes:
 | Enable bridge | on | on |
 | Show in top bar (pin) | as needed | as needed |
 | Connection mode | CLI (one-shot command) | HTTP (`codexbar serve`) |
-| Snapshot URL | leave the default, unused | `http://127.0.0.1:8080/dashboard/v1/snapshot` |
-| Access token | leave empty, unused | same as `CODEXBAR_DASHBOARD_TOKEN` |
-| CLI command | `codexbar` (or an absolute path) | leave the default, unused |
+| Snapshot URL | not shown (HTTP only) | `http://127.0.0.1:8080/dashboard/v1/snapshot` |
+| Access token | not shown (HTTP only) | same as `CODEXBAR_DASHBOARD_TOKEN` |
+| CLI command | `codexbar` (or an absolute path) | not shown (CLI only) |
 
 ### Self-check and troubleshooting
 
@@ -292,11 +292,13 @@ gnome-extensions prefs ai-quota@tools.0x5c0f.cc
 Once the CodexBar bridge is enabled in the 桥接层 (Bridge) group:
 
 - **Connection mode**: CLI (default, a one-shot command) or HTTP (requires
-  `codexbar serve` to be running).
+  `codexbar serve` to be running). It also decides which of the fields below are
+  shown: HTTP reveals "Snapshot URL" and "Access token", CLI reveals "CLI
+  command". Hidden fields keep their value and come back with the mode.
 - **Snapshot URL**: full URL for HTTP mode, defaults to
   `http://127.0.0.1:8080/dashboard/v1/snapshot`.
 - **Access token**: HTTP mode only — the `--dashboard-token` /
-  `CODEXBAR_DASHBOARD_TOKEN` value given to `codexbar serve`. Unused in CLI mode.
+  `CODEXBAR_DASHBOARD_TOKEN` value given to `codexbar serve`. Hidden in CLI mode.
 - **CLI command**: executable name or path for CLI mode, defaults to
   `codexbar`.
 

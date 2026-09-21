@@ -45,14 +45,14 @@ export default class AiQuotaPrefs extends ExtensionPreferences {
 
         const pinRow = new Adw.SwitchRow({
             title: '在顶栏显示（置顶）',
-            subtitle: '顶栏展示所有桥接窗口中最紧张的一个（剩余百分比）',
+            subtitle: '顶栏为每个桥接服务商各显示一项，取该服务商最紧张的配额窗口',
         });
         bs.bind('pinned', pinRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         expander.add_row(pinRow);
 
         const modeRow = new Adw.ComboRow({
             title: '连接模式',
-            subtitle: 'HTTP：读取 codexbar serve 的快照接口（需访问令牌）；CLI：每次刷新执行一次 codexbar dashboard，直接读其自身配置、无需令牌',
+            subtitle: 'HTTP：读取 codexbar serve 的快照接口，需填快照地址与访问令牌；CLI：每次刷新执行一次 codexbar dashboard，直接读其自身配置、无需令牌，只需 CLI 命令',
             model: new Gtk.StringList({
                 strings: ['HTTP（codexbar serve）', 'CLI（一次性命令）'],
             }),
@@ -80,13 +80,19 @@ export default class AiQuotaPrefs extends ExtensionPreferences {
 
         const updateSummary = () => {
             const enabled = bs.get_boolean('enabled');
+            const isCli = bs.get_string('mode') === 'cli';
             const bits = [
                 enabled ? '已启用' : '已停用',
                 bs.get_boolean('pinned') ? '已置顶' : '未置顶',
-                bs.get_string('mode') === 'cli' ? 'CLI' : 'HTTP',
+                isCli ? 'CLI' : 'HTTP',
             ];
             expander.set_subtitle(bits.join(' · '));
             pinRow.set_sensitive(enabled);
+            // Each mode reads only its own keys, so hide the other side's fields
+            // instead of leaving boxes that look fillable but do nothing. The
+            // values stay in GSettings, so switching back restores them.
+            urlRow.visible = tokenRow.visible = !isCli;
+            cmdRow.visible = isCli;
         };
         updateSummary();
         bs.connect('changed', () => updateSummary());

@@ -128,9 +128,9 @@ CODEXBAR_DASHBOARD_TOKEN='你的令牌' codexbar serve --refresh-interval 60
 | 启用桥接 | 开 | 开 |
 | 在顶栏显示（置顶） | 按需 | 按需 |
 | 连接模式 | CLI（一次性命令） | HTTP（codexbar serve） |
-| 快照地址 | 留默认即可，不使用 | `http://127.0.0.1:8080/dashboard/v1/snapshot` |
-| 访问令牌 | 留空，不使用 | 与 `CODEXBAR_DASHBOARD_TOKEN` 一致 |
-| CLI 命令 | `codexbar`（或绝对路径） | 留默认即可，不使用 |
+| 快照地址 | 不显示（HTTP 模式专用） | `http://127.0.0.1:8080/dashboard/v1/snapshot` |
+| 访问令牌 | 不显示（HTTP 模式专用） | 与 `CODEXBAR_DASHBOARD_TOKEN` 一致 |
+| CLI 命令 | `codexbar`（或绝对路径） | 不显示（CLI 模式专用） |
 
 ### 自检与排错
 
@@ -220,9 +220,11 @@ gnome-extensions prefs ai-quota@tools.0x5c0f.cc
 在“桥接层”分组中启用 CodexBar 桥接后，可选择：
 
 - **连接模式**：CLI（默认，一次性命令）或 HTTP（需 `codexbar serve` 在运行）。
+  它决定下面哪些字段可见：选 HTTP 只出现「快照地址」与「访问令牌」，选 CLI 只出现
+  「CLI 命令」；被隐藏的项仍保留原值，切回对应模式即恢复。
 - **快照地址**：HTTP 模式的完整 URL，默认 `http://127.0.0.1:8080/dashboard/v1/snapshot`。
 - **访问令牌**：HTTP 模式专用，即 `codexbar serve` 的 `--dashboard-token` /
-  `CODEXBAR_DASHBOARD_TOKEN`；CLI 模式不使用该项。
+  `CODEXBAR_DASHBOARD_TOKEN`；CLI 模式下不显示该项。
 - **CLI 命令**：CLI 模式的可执行文件名或路径，默认 `codexbar`。
 
 ### 服务商设置
