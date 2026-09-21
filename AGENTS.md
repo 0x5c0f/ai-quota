@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-这是一个 GNOME Shell 扩展仓库。核心运行时代码在根目录：`extension.js` 负责顶栏指示器、余额刷新和面板 UI，`prefs.js` 负责扩展设置窗口，`stylesheet.css` 存放样式，`metadata.json` 定义扩展元数据。服务商逻辑放在 `providers/`，例如 `deepseek.js`、`kimi.js` 和 `generic.js`。GSettings schema 位于 `schemas/`，截图等文档资产位于 `docs/`。发布流水线在 `.github/workflows/release.yml`。
+这是一个 GNOME Shell 扩展仓库。核心运行时代码在根目录：`extension.js` 负责顶栏指示器、余额刷新和面板 UI，`prefs.js` 负责扩展设置窗口，`stylesheet.css` 存放样式，`metadata.json` 定义扩展元数据。服务商逻辑放在 `providers/`，例如 `deepseek.js`、`kimi.js`、`generic.js`，以及桥接型 provider `codexbar.js`。GSettings schema 位于 `schemas/`，截图等文档资产位于 `docs/`。发布流水线在 `.github/workflows/release.yml`。
 
 ## Build, Test, and Development Commands
 
@@ -16,6 +16,13 @@
 
 JavaScript 使用 ES modules、4 空格缩进和分号。类名使用 `PascalCase`，函数和局部变量使用 `camelCase`，GNOME/GObject 私有状态沿用 `_fieldName` 风格。变更 provider 响应结构时，同时更新错误提示和文档示例。schema key 与设置代码保持语义一致，避免只改一侧。
 
+gjs/GNOME 46 实测陷阱（均已踩过）：
+
+- ISO 时间用 `GLib.DateTime.new_from_iso8601(str, null)`，本平台没有 `new_from_iso8601_string`。
+- `St.DrawingArea` 自身请求高度为 0，也没有 `request_height`/`set_content_height`：进度条要把 `DrawingArea` 放进一个 CSS 固定高度的 `St.BoxLayout` 容器（与 `.ab-sep` 同法），并设 `x_expand`/`y_expand`。
+- `area.get_surface_size()` 返回 `[width, height]` 两个值，不是四个。
+- 子进程判错用 `get_exit_status() !== 0`（无 `if_success()`）；临时文件名用 `GLib.get_monotonic_time()` 生成（`GLib.get_pid` 不存在），先读文件再删除。
+
 新增 provider 需同步五处（漏一处，设置界面或打包校验就会坏）：
 
 1. `providers/<id>.js` 导出默认 provider 类，并在 `extension.js` 的 `buildProviders()` 注册（按面板实例化，勿在模块加载时 `new`）。
@@ -23,6 +30,21 @@ JavaScript 使用 ES modules、4 空格缩进和分号。类名使用 `PascalCas
 3. `prefs.js` 顶部的 provider 列表加入条目。
 4. `.github/workflows/release.yml` 中 verify-zip 的硬编码文件清单。
 5. `README.md` 与 `README.en.md` 的 provider 表格。
+
+## Provider 接口约定
+
+直连型 provider：字段 `id`/`name`/`defaultBaseUrl`，可选 `visible(cfg)`；`buildRequest(cfg) → {uri, headers}`；`parse(status, body, cfg) → {ok:true, entries:[{currency,total,granted,toppedUp}]}` 或 `{ok:false, kind?, error}`（401/403 用 `kind:'auth'`）。`cfg` 来自该 provider 子 schema（`enabled`/`pinned`/`api-key`）。
+
+桥接型 provider（现有仅 `codexbar.js`）与直连型不同，新增同类 provider 时注意：
+
+- 类上带 `bridge = true`，`extension.js` 的 `_fetchAll` 走独立分支，不经 `defaultBaseUrl`。
+- 子 schema 没有 `api-key`，改为传输配置：`mode`（默认 `cli`）、`url`、`token`、`command`；`prefs.js` 中它属于「桥接层」分组，不进 provider 列表。
+- 两种传输：HTTP 用 `buildRequest(cfg)`（GET `cfg.url`，带 `Authorization: Bearer <token>`）；CLI 用 `cliArgs(cfg, tmpPath)`（`extension.js` 以 `Gio.Subprocess` 执行、读临时文件后删除，用 `get_exit_status()` 判错——`if_success()` 在 gjs 中不存在）。
+  注意：`codexbar serve` 的 `/dashboard/v1/snapshot` 强制令牌鉴权，**未设令牌也一律 401**（fail-closed），且令牌只能走 `--dashboard-token`/`CODEXBAR_DASHBOARD_TOKEN`，不在 codexbar 的 config.json 里；CLI 模式直接读 `~/.config/codexbar/config.json`，无需任何额外配置，故为默认。
+- `parse(status, body, cfg, skipIds)` 返回 `{ok:true, cards, generatedAt}` 而非 `entries`；`cards` 每项为 `{id,name,badge?,windows,credits?,todayUSD?,error?}`，`windows` 每项为 `{label,remaining,resetAt}`（`remaining` 由快照 `remainingPercent` 或 `100-usedPercent` 推出并夹到 0–100，两者都缺就跳过该窗口）。
+- 真实快照的形状差异（已按实测适配，勿改回）：套餐名在 `identity.plan` 而非顶层 `plan`；行级 `error` 是 `{code,message,kind}` 对象（取 `message`）；行上有 `enabled` 字段（`false` 时跳过）；`cost.todayUSD` 可以单独存在（无窗口无额度也是有效卡片）。
+- 顶栏兜底：桥接置顶时取最紧窗口，快照里没有任何窗口则退回额度或今日费用（否则纯计费类服务商会让顶栏沉默）。
+- `skipIds` 是已启用直连 provider 的 id 集合：快照中同 id 的桥接卡片必须丢弃，以直连数据为准。
 
 ## GSettings 与 EGO 审核约束
 
@@ -44,4 +66,4 @@ Git 历史目前较短，已有 `docs: ...` 这类前缀；建议继续使用简
 
 ## Security & Configuration Tips
 
-API Key 保存在 GNOME GSettings/dconf 中，通常不是加密存储。开发和测试时使用低权限密钥，避免把生产密钥写入 README、截图、日志或测试数据。自定义 provider 应优先要求 HTTPS，并继续使用 `Authorization: Bearer <API Key>` 的请求约定。
+API Key 保存在 GNOME GSettings/dconf 中，通常不是加密存储。开发和测试时使用低权限密钥，避免把生产密钥写入 README、截图、日志或测试数据。自定义 provider 应优先要求 HTTPS，并继续使用 `Authorization: Bearer <API Key>` 的请求约定。桥接层不保存第三方密钥：各服务商密钥由本机 CodexBar 自行管理，扩展只读取其快照。

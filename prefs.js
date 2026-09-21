@@ -20,8 +20,77 @@ export default class ApiBalancePrefs extends ExtensionPreferences {
         const page = new Adw.PreferencesPage();
         window.add(page);
 
-        this._buildGeneralGroup(page, settings);
+        this._buildBridgeGroup(page, settings);
         this._buildProvidersGroup(page, settings);
+        this._buildGeneralGroup(page, settings);
+    }
+
+    _buildBridgeGroup(page, settings) {
+        const group = new Adw.PreferencesGroup({
+            title: '桥接层',
+            description: '配额数据由第三方工具 CodexBar 采集与维护（约 70 家服务商），密钥存储于其自身配置（~/.config/codexbar/），本扩展不直接接触这些密钥。需本机安装并运行 CodexBar。',
+        });
+        page.add(group);
+
+        const bs = settings.get_child('codexbar');
+        const expander = new Adw.ExpanderRow({ title: 'CodexBar 桥接' });
+
+        const enableRow = new Adw.SwitchRow({
+            title: '启用桥接',
+            subtitle: '停用后面板不出现桥接卡片',
+        });
+        bs.bind('enabled', enableRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        expander.add_row(enableRow);
+
+        const pinRow = new Adw.SwitchRow({
+            title: '在顶栏显示（置顶）',
+            subtitle: '顶栏展示所有桥接窗口中最紧张的一个（剩余百分比）',
+        });
+        bs.bind('pinned', pinRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        expander.add_row(pinRow);
+
+        const modeRow = new Adw.ComboRow({
+            title: '连接模式',
+            subtitle: 'HTTP：读取 codexbar serve 的快照接口（需访问令牌）；CLI：每次刷新执行一次 codexbar dashboard，直接读其自身配置、无需令牌',
+            model: new Gtk.StringList({
+                strings: ['HTTP（codexbar serve）', 'CLI（一次性命令）'],
+            }),
+        });
+        modeRow.set_selected(bs.get_string('mode') === 'cli' ? 1 : 0);
+        modeRow.connect('notify::selected', () => {
+            bs.set_string('mode', modeRow.get_selected() === 1 ? 'cli' : 'http');
+        });
+        expander.add_row(modeRow);
+
+        const urlRow = new Adw.EntryRow({ title: '快照地址' });
+        urlRow.set_tooltip_text('HTTP 模式下的 dashboard-v1 snapshot 完整 URL');
+        bs.bind('url', urlRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+        expander.add_row(urlRow);
+
+        const tokenRow = new Adw.EntryRow({ title: '访问令牌' });
+        tokenRow.set_tooltip_text('HTTP 模式专用：codexbar serve 的 --dashboard-token / CODEXBAR_DASHBOARD_TOKEN，未设置时该接口一律返回 401');
+        bs.bind('token', tokenRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+        expander.add_row(tokenRow);
+
+        const cmdRow = new Adw.EntryRow({ title: 'CLI 命令' });
+        cmdRow.set_tooltip_text('CLI 模式下执行的命令，默认在 PATH 中查找 codexbar');
+        bs.bind('command', cmdRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+        expander.add_row(cmdRow);
+
+        const updateSummary = () => {
+            const enabled = bs.get_boolean('enabled');
+            const bits = [
+                enabled ? '已启用' : '已停用',
+                bs.get_boolean('pinned') ? '已置顶' : '未置顶',
+                bs.get_string('mode') === 'cli' ? 'CLI' : 'HTTP',
+            ];
+            expander.set_subtitle(bits.join(' · '));
+            pinRow.set_sensitive(enabled);
+        };
+        updateSummary();
+        bs.connect('changed', () => updateSummary());
+
+        group.add(expander);
     }
 
     _buildGeneralGroup(page, settings) {
@@ -43,7 +112,7 @@ export default class ApiBalancePrefs extends ExtensionPreferences {
             title: '顶栏显示',
             subtitle: '多个后端同时置顶时顶栏如何显示；展开面板始终列出全部后端',
             model: new Gtk.StringList({
-                strings: ['单显（仅显示第一个置顶后端）', '轮播（在多个置顶后端间切换）'],
+                strings: ['单显（置顶项并列显示）', '轮播（在多个置顶后端间切换）'],
             }),
         });
         combo.set_selected(settings.get_string('topbar-display') === 'carousel' ? 1 : 0);
@@ -51,12 +120,25 @@ export default class ApiBalancePrefs extends ExtensionPreferences {
             settings.set_string('topbar-display', combo.get_selected() === 1 ? 'carousel' : 'single');
         });
         group.add(combo);
+
+        const winCombo = new Adw.ComboRow({
+            title: '配额窗口显示方式',
+            subtitle: '桥接/套餐类服务的用量窗口（如 5 小时、周）在卡片中的呈现',
+            model: new Gtk.StringList({
+                strings: ['进度条 + 重置时间', '仅文字'],
+            }),
+        });
+        winCombo.set_selected(settings.get_string('window-display') === 'text' ? 1 : 0);
+        winCombo.connect('notify::selected', () => {
+            settings.set_string('window-display', winCombo.get_selected() === 1 ? 'text' : 'bar');
+        });
+        group.add(winCombo);
     }
 
     _buildProvidersGroup(page, settings) {
         const group = new Adw.PreferencesGroup({
-            title: '后端',
-            description: '点击展开以配置各后端的 API 密钥与地址',
+            title: '直连服务',
+            description: '扩展直接请求服务商官方接口，密钥保存在 GSettings 中',
         });
         page.add(group);
         for (const p of PROVIDERS)

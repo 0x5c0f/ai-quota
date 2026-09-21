@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.api-balance.codexbar" path="/org/gnome/shell/extensions/api-balance/codexbar/">
+    <key name="enabled" type="b">
+      <default>false</default>
+      <summary>Consume quota data from the external CodexBar tool</summary>
+    </key>
+    <key name="pinned" type="b">
+      <default>false</default>
+      <summary>Show the tightest bridge window in the top bar</summary>
+    </key>
+    <key name="mode" type="s">
+      <default>'cli'</default>
+      <summary>Transport: cli one-shot, or http against codexbar serve</summary>
+    </key>
+    <key name="url" type="s">
+      <default>'http://127.0.0.1:8080/dashboard/v1/snapshot'</default>
+      <summary>Dashboard snapshot URL (http mode)</summary>
+    </key>
+    <key name="token" type="s">
+      <default>''</default>
+      <summary>Dashboard bearer token issued to codexbar serve (http mode)</summary>
+    </key>
+    <key name="command" type="s">
+      <default>'codexbar'</default>
+      <summary>CodexBar CLI command (cli mode)</summary>
+    </key>
+  </schema>
+</schemalist>

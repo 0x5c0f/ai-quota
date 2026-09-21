@@ -13,7 +13,7 @@
 }
 
 .ab-popup {
-  width: 340px;
+  width: 372px;
 }
 
 .ab-header {
@@ -119,4 +119,54 @@
 
 .ab-btn-icon {
   padding: 4px 10px;
+}
+
+.ab-win {
+  spacing: 3px;
+  padding: 4px 0 2px 0;
+}
+
+.ab-win-top {
+  spacing: 8px;
+}
+
+.ab-win-label {
+  font-size: 0.88em;
+}
+
+.ab-win-reset {
+  font-size: 0.8em;
+}
+
+.ab-win-bar {
+  height: 6px;
+  margin: 1px 0 2px 0;
+}
+
+.ab-src-tag {
+  font-size: 0.72em;
+  border-radius: 5px;
+  padding: 1px 7px;
+  background-color: rgba(128, 128, 128, 0.22);
+  color: #c0bfbc;
+}
+
+.ab-src-direct {
+  background-color: rgba(53, 132, 228, 0.18);
+  color: #78aeff;
+}
+
+.ab-src-bridge {
+  background-color: rgba(128, 128, 128, 0.22);
+  color: #9a9996;
+}
+
+.ab-src-plan {
+  background-color: rgba(46, 194, 126, 0.16);
+  color: #2ec27e;
+}
+
+.ab-footer {
+  font-size: 0.78em;
+  padding: 2px 12px 0 12px;
 }

@@ -4,7 +4,7 @@
 
 **API Balance** 是一个 GNOME Shell 扩展，用于在桌面顶栏查看多个 AI API 服务商的余额或额度。
 
-它支持内置服务商和自定义余额接口，并提供 GNOME 原生风格的配置窗口。
+它支持内置服务商、自定义余额接口，以及通过 [CodexBar](https://github.com/steipete/CodexBar) 桥接层接入约 70 家服务商的用量数据，并提供 GNOME 原生风格的配置窗口。
 
 ## 效果预览
 
@@ -15,12 +15,14 @@
 ## 功能特性
 
 - 在 GNOME Shell 顶栏显示已置顶服务商的余额。
-- 支持单个显示或多个服务商轮播显示。
+- 多个置顶服务商可并列显示或轮播显示。
 - 点击顶栏指示器查看各服务商的详细余额信息。
 - 支持余额、充值额度、赠送额度和货币信息展示。
 - 支持自动刷新和手动刷新。
 - 支持启用/停用单个服务商。
 - 支持自定义余额查询接口。
+- 支持 CodexBar 桥接：一次接入即可获得其维护的约 70 家服务商用量数据（Claude、Gemini、Cursor 等）。
+- 配额窗口以进度条展示（会话 / 周等），带重置倒计时与用量颜色提示。
 - 使用 JSON 点路径读取自定义接口响应字段。
 - 不包含遥测功能，不主动连接未配置的第三方服务。
 
@@ -36,6 +38,38 @@
 此外，还可以通过“自定义”配置接入其他兼容的余额查询接口。
 
 > 内置服务商的接口地址和返回格式由对应 provider 实现决定。服务商接口发生变化时，可能需要同步更新 provider 代码。
+
+## CodexBar 桥接层
+
+[CodexBar](https://github.com/steipete/CodexBar) 是一个独立的开源命令行工具，负责采集约 70 家 AI 服务商的配额与用量。本扩展通过桥接层消费其版本化的 `dashboard-v1` 快照，把每家服务商渲染为带配额窗口进度条的卡片。
+
+适合以下场景：
+
+- 使用 Claude、Gemini、Cursor 等订阅制套餐（按 5 小时 / 周窗口限流）。
+- 不想在扩展中逐个配置各服务商 API Key。
+
+### 使用前提
+
+1. 在本机安装 CodexBar，并在其自身配置（`~/.config/codexbar/config.json`）中完成各服务商的登录或密钥设置。
+2. 二选一提供快照：
+   - **CLI 模式**（默认，零额外配置）：扩展每次刷新执行 `codexbar dashboard --output <临时文件>`，
+     直接读取 CodexBar 自身配置，不需要常驻服务、也不需要令牌。单次抓取通常 5–15 秒。
+   - **HTTP 模式**：运行 `codexbar serve`，扩展请求 `http://127.0.0.1:8080/dashboard/v1/snapshot`。
+     该接口带令牌鉴权且默认拒绝匿名访问，因此需要：
+
+     ```bash
+     CODEXBAR_DASHBOARD_TOKEN=你的令牌 codexbar serve
+     ```
+
+     并在扩展设置里填入同一个令牌；未配置令牌时该接口一律返回 401。
+     服务端会缓存快照（`--refresh-interval`，默认 60 秒），因此刷新间隔较短时 HTTP 模式更省资源。
+
+### 行为说明
+
+- 桥接卡片与直连服务商互不冲突：若某服务商已启用直连查询（如 DeepSeek），快照中同 id 的桥接卡片会被自动隐藏，以直连数据为准。
+- 配额窗口显示方式可选“进度条 + 重置时间”或“仅文字”；进度条颜色按剩余量分蓝、黄、红三档。
+- 顶栏置顶桥接时，显示所有桥接窗口中最紧张的一个；若快照里没有任何配额窗口，则退回展示额度或今日费用。
+- 面板底部显示本扩展的上次刷新时间与 CodexBar 快照的生成时间。
 
 ## 安装
 
@@ -89,8 +123,21 @@ gnome-extensions prefs api-balance@tools.0x5c0f.cc
 
 - **自动刷新间隔**：设置自动查询间隔，单位为分钟，范围为 1–1440。
 - **顶栏显示**：
-  - **单显**：显示第一个置顶服务商。
+  - **单显**：所有置顶服务商并列显示在一行。
   - **轮播**：每隔数秒在多个置顶服务商之间切换。
+- **配额窗口显示方式**：
+  - **进度条 + 重置时间**：桥接卡片中的配额窗口以彩色进度条呈现。
+  - **仅文字**：只显示剩余百分比与重置时间。
+
+### 桥接层设置
+
+在“桥接层”分组中启用 CodexBar 桥接后，可选择：
+
+- **连接模式**：CLI（默认，一次性命令）或 HTTP（需 `codexbar serve` 在运行）。
+- **快照地址**：HTTP 模式的完整 URL，默认 `http://127.0.0.1:8080/dashboard/v1/snapshot`。
+- **访问令牌**：HTTP 模式专用，即 `codexbar serve` 的 `--dashboard-token` /
+  `CODEXBAR_DASHBOARD_TOKEN`；CLI 模式不使用该项。
+- **CLI 命令**：CLI 模式的可执行文件名或路径，默认 `codexbar`。
 
 ### 服务商设置
 
@@ -172,7 +219,8 @@ Authorization: Bearer <API Key>
 ├── providers/
 │   ├── deepseek.js       # DeepSeek provider
 │   ├── kimi.js           # Kimi provider
-│   └── generic.js        # 自定义 provider
+│   ├── generic.js        # 自定义 provider
+│   └── codexbar.js       # CodexBar 桥接 provider
 ├── schemas/
 │   └── *.gschema.xml     # GSettings 配置定义
 ├── .github/
@@ -239,7 +287,9 @@ git push origin main --tags
 
 - API Key 会保存到 GNOME GSettings/dconf 中，通常以明文形式存储。
 - 不建议在扩展中配置具有高额消费权限或重要生产权限的 API Key。
-- 扩展只请求内置 provider 或用户配置的自定义 URL。
+- 扩展只请求内置 provider、用户配置的自定义 URL 或桥接层配置的快照地址。
+- CodexBar 桥接层不直接接触各服务商密钥：其密钥由 CodexBar 自身管理（通常位于 `~/.config/codexbar/`），本扩展只读取本机 CodexBar 生成的快照数据。
+- HTTP 模式的访问令牌同样保存在 GSettings/dconf 中（明文）；建议只让 `codexbar serve` 监听回环地址，不要把无 TLS 的快照端口暴露到网络上。
 - 扩展不包含遥测逻辑，也不会主动向其他服务发送数据。
 - 所有余额查询请求均使用 HTTP `GET`，并通过 `Authorization: Bearer <API Key>` 传递密钥。
 - 自定义接口建议使用 HTTPS，避免 API Key 在网络中明文传输。
@@ -279,6 +329,19 @@ git push origin main --tags
 - JSON 映射路径是否正确。
 - 数组下标是否正确。
 - 余额字段是否为数字或可转换为数字的字符串。
+
+### 桥接层显示“查询失败”
+
+按错误提示依次检查：
+
+- 提示需要访问令牌 (HTTP 401/403)：`codexbar serve` 的快照接口默认拒绝匿名访问，扩展里填的令牌必须与
+  `--dashboard-token` / `CODEXBAR_DASHBOARD_TOKEN` 一致；不想配令牌就改用 CLI 模式。
+- 提示确认 `codexbar serve` 已启动：HTTP 模式需要 CodexBar 服务在运行，且快照地址为 `/dashboard/v1/snapshot`。
+- CLI 模式提示无法启动：确认 `codexbar` 可执行文件在 PATH 中，或在设置里填写完整路径。
+- 提示不支持的快照格式：CodexBar 版本过新或过旧，与本扩展消费的 `schemaVersion: 1` 不匹配。
+- 面板显示“快照中无可展示的服务商”：CodexBar 尚未配置服务商，或对应服务商已被直连查询覆盖。
+- 个别服务商卡片显示“查询失败”并附带错误：这是 CodexBar 的行级错误（例如无法解析服务商域名），
+  不影响其他服务商正常展示。
 
 ## 兼容性
 
