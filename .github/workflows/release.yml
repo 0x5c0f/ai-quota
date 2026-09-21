@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  UUID: api-balance@tools.0x5c0f.cc
+  UUID: ai-quota@tools.0x5c0f.cc
 
 jobs:
   package:
@@ -56,10 +56,10 @@ jobs:
         run: |
           unzip -l "$UUID.zip"
           for f in metadata.json extension.js prefs.js stylesheet.css \
-                   schemas/org.gnome.shell.extensions.api-balance.gschema.xml \
-                   schemas/org.gnome.shell.extensions.api-balance.deepseek.gschema.xml \
-                   schemas/org.gnome.shell.extensions.api-balance.custom.gschema.xml \
-                   schemas/org.gnome.shell.extensions.api-balance.codexbar.gschema.xml \
+                   schemas/org.gnome.shell.extensions.ai-quota.gschema.xml \
+                   schemas/org.gnome.shell.extensions.ai-quota.deepseek.gschema.xml \
+                   schemas/org.gnome.shell.extensions.ai-quota.custom.gschema.xml \
+                   schemas/org.gnome.shell.extensions.ai-quota.codexbar.gschema.xml \
                    providers/deepseek.js providers/generic.js providers/codexbar.js; do
             unzip -l "$UUID.zip" "$f" | grep -q "$f" || { echo "missing in zip: $f"; exit 1; }
           done

@@ -20,7 +20,7 @@ try {
     try {
         Soup = (await import('gi://Soup?version=2.4')).default;
     } catch (e) {
-        console.error(`[ApiBalance] libsoup unavailable: ${e.message}`);
+        console.error(`[AiQuota] libsoup unavailable: ${e.message}`);
     }
 }
 
@@ -139,7 +139,7 @@ class BalancePanel extends PanelMenu.Button {
     }
 
     _init(settings, openPreferences) {
-        super._init(0.0, 'API Balance', false);
+        super._init(0.0, 'AI Quota', false);
 
         // Private class fields initialize only after the _init chain: assign here.
         this._settings = settings;
@@ -292,7 +292,7 @@ class BalancePanel extends PanelMenu.Button {
 
         this._header = new St.BoxLayout({ style_class: 'ab-header' });
         this._header.add_child(new St.Label({
-            text: 'API 额度',
+            text: 'AI 额度',
             style_class: 'ab-title',
             x_align: Clutter.ActorAlign.START,
             x_expand: true,
@@ -907,7 +907,7 @@ class BalancePanel extends PanelMenu.Button {
     }
 }
 
-export default class ApiBalanceExtension extends Extension {
+export default class AiQuotaExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
         try {
@@ -915,7 +915,7 @@ export default class ApiBalanceExtension extends Extension {
             Main.panel.addToStatusArea(this.uuid, this._panel);
         } catch (e) {
             // A failure here must never take the shell session down.
-            logError(e, '[ApiBalance] failed to start panel');
+            logError(e, '[AiQuota] failed to start panel');
             this._panel = null;
         }
     }

@@ -1,8 +1,8 @@
-# API Balance
+# AI Quota
 
 [中文](README.md) · English
 
-**API Balance** is a GNOME Shell extension for checking the balance or quota of
+**AI Quota** is a GNOME Shell extension for checking the balance or quota of
 multiple AI API providers right in the desktop top bar.
 
 It supports built-in providers, custom balance endpoints, and a bridge layer
@@ -231,18 +231,18 @@ curl -sf -H "Authorization: Bearer your-token" \
 
 ### From GitHub Releases
 
-1. Open the [Releases](https://github.com/0x5c0f/api-balance/releases) page.
+1. Open the [Releases](https://github.com/0x5c0f/ai-quota/releases) page.
 2. Download the zip archive of the latest release.
 3. Install it:
 
 ```bash
-gnome-extensions install api-balance@tools.0x5c0f.cc.zip
+gnome-extensions install ai-quota@tools.0x5c0f.cc.zip
 ```
 
 4. Enable the extension:
 
 ```bash
-gnome-extensions enable api-balance@tools.0x5c0f.cc
+gnome-extensions enable ai-quota@tools.0x5c0f.cc
 ```
 
 If the extension does not take effect immediately, log out and back in. On X11
@@ -253,19 +253,19 @@ you can also press `Alt` + `F2`, type `r`, and restart GNOME Shell.
 Run this in the project root:
 
 ```bash
-mkdir -p ~/.local/share/gnome-shell/extensions/api-balance@tools.0x5c0f.cc
+mkdir -p ~/.local/share/gnome-shell/extensions/ai-quota@tools.0x5c0f.cc
 
 cp metadata.json extension.js prefs.js stylesheet.css \
-  ~/.local/share/gnome-shell/extensions/api-balance@tools.0x5c0f.cc/
+  ~/.local/share/gnome-shell/extensions/ai-quota@tools.0x5c0f.cc/
 
 cp -r providers schemas \
-  ~/.local/share/gnome-shell/extensions/api-balance@tools.0x5c0f.cc/
+  ~/.local/share/gnome-shell/extensions/ai-quota@tools.0x5c0f.cc/
 ```
 
 Then enable the extension:
 
 ```bash
-gnome-extensions enable api-balance@tools.0x5c0f.cc
+gnome-extensions enable ai-quota@tools.0x5c0f.cc
 ```
 
 ## Configuration
@@ -273,7 +273,7 @@ gnome-extensions enable api-balance@tools.0x5c0f.cc
 Open the GNOME extensions preferences:
 
 ```bash
-gnome-extensions prefs api-balance@tools.0x5c0f.cc
+gnome-extensions prefs ai-quota@tools.0x5c0f.cc
 ```
 
 ### General Settings
@@ -426,7 +426,7 @@ gnome-extensions pack -f \
 You can also package manually with `zip`:
 
 ```bash
-zip -r api-balance@tools.0x5c0f.cc.zip \
+zip -r ai-quota@tools.0x5c0f.cc.zip \
   metadata.json \
   extension.js \
   prefs.js \
@@ -533,6 +533,6 @@ This project is released under the [MIT License](LICENSE).
 
 ## Links
 
-- [Repository](https://github.com/0x5c0f/api-balance)
-- [GitHub Releases](https://github.com/0x5c0f/api-balance/releases)
-- [GNOME Extensions](https://extensions.gnome.org/extension/10989/api-balance/)
+- [Repository](https://github.com/0x5c0f/ai-quota)
+- [GitHub Releases](https://github.com/0x5c0f/ai-quota/releases)
+- [GNOME Extensions](https://extensions.gnome.org/extension/10989/ai-quota/)

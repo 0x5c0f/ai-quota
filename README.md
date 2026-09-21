@@ -1,8 +1,8 @@
-# API Balance
+# AI Quota
 
 中文 · [English](README.en.md)
 
-**API Balance** 是一个 GNOME Shell 扩展，用于在桌面顶栏查看多个 AI API 服务商的余额或额度。
+**AI Quota** 是一个 GNOME Shell 扩展，用于在桌面顶栏查看多个 AI API 服务商的余额或额度。
 
 它支持内置服务商、自定义余额接口，以及通过 [CodexBar](https://github.com/steipete/CodexBar) 桥接层接入约 70 家服务商的用量数据，并提供 GNOME 原生风格的配置窗口。
 
@@ -161,18 +161,18 @@ curl -sf -H "Authorization: Bearer 你的令牌" \
 
 ### 从 GitHub Releases 安装
 
-1. 打开 [Releases](https://github.com/0x5c0f/api-balance/releases)。
+1. 打开 [Releases](https://github.com/0x5c0f/ai-quota/releases)。
 2. 下载最新版本的扩展压缩包。
 3. 执行安装命令：
 
 ```bash
-gnome-extensions install api-balance@tools.0x5c0f.cc.zip
+gnome-extensions install ai-quota@tools.0x5c0f.cc.zip
 ```
 
 4. 启用扩展：
 
 ```bash
-gnome-extensions enable api-balance@tools.0x5c0f.cc
+gnome-extensions enable ai-quota@tools.0x5c0f.cc
 ```
 
 如果扩展没有立即生效，请注销并重新登录。X11 环境也可以使用 `Alt` + `F2`，输入 `r` 重启 GNOME Shell。
@@ -182,19 +182,19 @@ gnome-extensions enable api-balance@tools.0x5c0f.cc
 在项目根目录执行：
 
 ```bash
-mkdir -p ~/.local/share/gnome-shell/extensions/api-balance@tools.0x5c0f.cc
+mkdir -p ~/.local/share/gnome-shell/extensions/ai-quota@tools.0x5c0f.cc
 
 cp metadata.json extension.js prefs.js stylesheet.css \
-  ~/.local/share/gnome-shell/extensions/api-balance@tools.0x5c0f.cc/
+  ~/.local/share/gnome-shell/extensions/ai-quota@tools.0x5c0f.cc/
 
 cp -r providers schemas \
-  ~/.local/share/gnome-shell/extensions/api-balance@tools.0x5c0f.cc/
+  ~/.local/share/gnome-shell/extensions/ai-quota@tools.0x5c0f.cc/
 ```
 
 然后启用扩展：
 
 ```bash
-gnome-extensions enable api-balance@tools.0x5c0f.cc
+gnome-extensions enable ai-quota@tools.0x5c0f.cc
 ```
 
 ## 配置
@@ -202,7 +202,7 @@ gnome-extensions enable api-balance@tools.0x5c0f.cc
 打开 GNOME 扩展设置：
 
 ```bash
-gnome-extensions prefs api-balance@tools.0x5c0f.cc
+gnome-extensions prefs ai-quota@tools.0x5c0f.cc
 ```
 
 ### 常规设置
@@ -348,7 +348,7 @@ gnome-extensions pack -f \
 也可以使用 `zip` 手动打包：
 
 ```bash
-zip -r api-balance@tools.0x5c0f.cc.zip \
+zip -r ai-quota@tools.0x5c0f.cc.zip \
   metadata.json \
   extension.js \
   prefs.js \
@@ -440,7 +440,7 @@ git push origin main --tags
 
 ## 相关链接
 
-- [项目仓库](https://github.com/0x5c0f/api-balance)
-- [GitHub Releases](https://github.com/0x5c0f/api-balance/releases)
-- [GNOME Extensions](https://extensions.gnome.org/extension/10989/api-balance/)
+- [项目仓库](https://github.com/0x5c0f/ai-quota)
+- [GitHub Releases](https://github.com/0x5c0f/ai-quota/releases)
+- [GNOME Extensions](https://extensions.gnome.org/extension/10989/ai-quota/)
 - [CodexBar](https://github.com/steipete/CodexBar)

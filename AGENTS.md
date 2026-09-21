@@ -10,7 +10,7 @@
 - `glib-compile-schemas --strict --targetdir=$(mktemp -d) schemas/`：按 CI 方式严格校验 schema。
 - `for f in extension.js prefs.js providers/*.js; do cp "$f" /tmp/check.mjs && node --check /tmp/check.mjs; done`：检查所有 JavaScript 模块语法。
 - `gnome-extensions pack -f --extra-source=providers .`：使用 GNOME 工具打包扩展。
-- `zip -r api-balance@tools.0x5c0f.cc.zip metadata.json extension.js prefs.js stylesheet.css schemas/*.xml providers/*.js`：手动生成发布 zip。
+- `zip -r ai-quota@tools.0x5c0f.cc.zip metadata.json extension.js prefs.js stylesheet.css schemas/*.xml providers/*.js`：手动生成发布 zip。
 
 ## Coding Style & Naming Conventions
 
@@ -62,7 +62,7 @@ gjs/GNOME 46 实测陷阱（均已踩过）：
 
 ## Testing Guidelines
 
-当前没有单元测试框架；提交前至少运行 schema 校验和 JavaScript 语法检查。涉及 UI、刷新逻辑或 provider 响应解析时，先在嵌套 Xephyr 会话验证：隔离 XDG 目录拷入扩展、启动 `gnome-shell --x11`、确认日志无 `JS ERROR`，再考虑装入 live shell（GNOME Shell 45-50 需逐一手动过：启用扩展、`gnome-extensions prefs api-balance@tools.0x5c0f.cc`、手动刷新与错误状态）——未验证代码直接进 live shell，崩溃会拖垮整个桌面会话。嵌套会话已知限制：GNOME 46 禁止经 gdbus 调用 `Shell.Eval`（返回 `(false,'')`），设置窗口需手动打开；弹窗在 Xephyr 下贴不住顶栏，用 `box.translation_y`（Clutter 属性，无 `set_translation_y`）调整。
+当前没有单元测试框架；提交前至少运行 schema 校验和 JavaScript 语法检查。涉及 UI、刷新逻辑或 provider 响应解析时，先在嵌套 Xephyr 会话验证：隔离 XDG 目录拷入扩展、启动 `gnome-shell --x11`、确认日志无 `JS ERROR`，再考虑装入 live shell（GNOME Shell 45-50 需逐一手动过：启用扩展、`gnome-extensions prefs ai-quota@tools.0x5c0f.cc`、手动刷新与错误状态）——未验证代码直接进 live shell，崩溃会拖垮整个桌面会话。嵌套会话已知限制：GNOME 46 禁止经 gdbus 调用 `Shell.Eval`（返回 `(false,'')`），设置窗口需手动打开；弹窗在 Xephyr 下贴不住顶栏，用 `box.translation_y`（Clutter 属性，无 `set_translation_y`）调整。
 
 装入 live shell 的两条硬要求：先 `glib-compile-schemas ~/.local/share/gnome-shell/extensions/$UUID/schemas/`（旧的 `gschemas.compiled` 会让新增子 schema/键不可见，`get_child`/`get_string` 直接抛错），再真正重启 gnome-shell（X11 下 `Alt`+`F2` → `r`）。`gnome-extensions disable/enable` 不足以生效：GNOME 45+ 扩展是 ES module，gjs 按进程缓存模块，旧代码会继续运行。重启走的是 re-exec，gnome-shell 的 PID 不变，别用 `pgrep` 判断成败。
 

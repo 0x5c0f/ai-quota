@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <schema id="org.gnome.shell.extensions.api-balance" path="/org/gnome/shell/extensions/api-balance/">
+  <schema id="org.gnome.shell.extensions.ai-quota" path="/org/gnome/shell/extensions/ai-quota/">
     <key name="refresh-interval" type="i">
       <default>300</default>
       <range min="60" max="86400"/>
@@ -18,8 +18,8 @@
       <default>'auto'</default>
       <summary>Panel palette: auto follows the desktop dark setting, or force dark / light</summary>
     </key>
-    <child name="deepseek" schema="org.gnome.shell.extensions.api-balance.deepseek"/>
-    <child name="codexbar" schema="org.gnome.shell.extensions.api-balance.codexbar"/>
-    <child name="custom" schema="org.gnome.shell.extensions.api-balance.custom"/>
+    <child name="deepseek" schema="org.gnome.shell.extensions.ai-quota.deepseek"/>
+    <child name="codexbar" schema="org.gnome.shell.extensions.ai-quota.codexbar"/>
+    <child name="custom" schema="org.gnome.shell.extensions.ai-quota.custom"/>
   </schema>
 </schemalist>

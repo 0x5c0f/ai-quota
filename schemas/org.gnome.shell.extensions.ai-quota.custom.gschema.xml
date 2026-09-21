@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <schema id="org.gnome.shell.extensions.api-balance.custom" path="/org/gnome/shell/extensions/api-balance/custom/">
+  <schema id="org.gnome.shell.extensions.ai-quota.custom" path="/org/gnome/shell/extensions/ai-quota/custom/">
     <key name="enabled" type="b">
       <default>false</default>
       <summary>Whether this provider is queried</summary>

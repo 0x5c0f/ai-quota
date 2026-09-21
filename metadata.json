@@ -1,9 +1,9 @@
 {
-  "uuid": "api-balance@tools.0x5c0f.cc",
-  "name": "API Balance",
-  "description": "Show remaining balance/quota of AI API providers (DeepSeek, …) in the top bar",
-  "settings-schema": "org.gnome.shell.extensions.api-balance",
+  "uuid": "ai-quota@tools.0x5c0f.cc",
+  "name": "AI Quota",
+  "description": "Show remaining quota/balance of AI API providers (DeepSeek, …) in the top bar",
+  "settings-schema": "org.gnome.shell.extensions.ai-quota",
   "shell-version": ["45", "46", "47", "48", "49", "50"],
-  "url": "https://github.com/0x5c0f/api-balance",
-  "version": 6
+  "url": "https://github.com/0x5c0f/ai-quota",
+  "version": 1
 }

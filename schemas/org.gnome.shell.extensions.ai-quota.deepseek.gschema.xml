@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <schema id="org.gnome.shell.extensions.api-balance.deepseek" path="/org/gnome/shell/extensions/api-balance/deepseek/">
+  <schema id="org.gnome.shell.extensions.ai-quota.deepseek" path="/org/gnome/shell/extensions/ai-quota/deepseek/">
     <key name="enabled" type="b">
       <default>true</default>
       <summary>Whether this provider is queried</summary>

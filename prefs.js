@@ -11,7 +11,7 @@ const PROVIDERS = [
     { id: 'deepseek', name: 'DeepSeek', defaultBaseUrl: 'https://api.deepseek.com' },
 ];
 
-export default class ApiBalancePrefs extends ExtensionPreferences {
+export default class AiQuotaPrefs extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         // Keep settings local: the prefs object must not retain window-scoped
         // objects (EGO-L-006).
