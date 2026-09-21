@@ -201,9 +201,12 @@ curl -sf -H "Authorization: Bearer your-token" \
   the snapshot is hidden and the direct data wins.
 - Quota windows can be shown as "progress bar + reset time" or "text only";
   bar colors are blue / yellow / red by remaining amount.
-- When the bridge is pinned, the top bar shows the tightest bridge window; if
-  the snapshot holds no quota window at all, it falls back to credits or today's
-  spend.
+- In the top bar every provider of the snapshot gets its own slot (treated just
+  like a direct provider), ordered by urgency: the tightest remaining share
+  first, then credits / today's spend, with failed rows last (they still raise
+  the ⚠ badge). "Single" lists at most 2 slots and collapses the rest into
+  `+N` — more than that collides with the clock in the middle of the bar;
+  "Carousel" cycles through all of them without collapsing.
 - The panel footer shows this extension's last refresh time and the generation
   time of the CodexBar snapshot.
 - The snapshot is parsed as if every key could be missing: only numbers that are
@@ -277,7 +280,8 @@ gnome-extensions prefs api-balance@tools.0x5c0f.cc
 
 - **Auto refresh interval**: query interval in minutes, range 1–1440.
 - **Top bar display**:
-  - **Single**: show all pinned providers side by side in one line.
+  - **Single**: show the most urgent pinned providers side by side, at most 2,
+    with the rest collapsed into `+N`.
   - **Carousel**: switch between pinned providers every few seconds.
 - **Quota window display**:
   - **Progress bar + reset time**: bridge quota windows render as colored bars.

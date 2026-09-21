@@ -111,9 +111,9 @@ export default class ApiBalancePrefs extends ExtensionPreferences {
 
         const combo = new Adw.ComboRow({
             title: '顶栏显示',
-            subtitle: '多个后端同时置顶时顶栏如何显示；展开面板始终列出全部后端',
+            subtitle: '多个后端同时置顶时顶栏如何显示；展开面板始终列出全部后端。桥接层里每个服务商各算一个后端',
             model: new Gtk.StringList({
-                strings: ['单显（置顶项并列显示）', '轮播（在多个置顶后端间切换）'],
+                strings: ['单显（并列显示最紧张的最多 2 项，其余折叠为 +N）', '轮播（在多个置顶后端间切换）'],
             }),
         });
         combo.set_selected(settings.get_string('topbar-display') === 'carousel' ? 1 : 0);

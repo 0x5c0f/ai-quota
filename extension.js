@@ -39,6 +39,17 @@ const DIRECT_LOGOS = {
 };
 const BRIDGE_LOGOS = ['#7a5af8', '#d97757', '#10a37f', '#00b0ff', '#e8590c'];
 
+// Ceiling for the 单显 top bar: two parts fit beside the shell's own indicators,
+// anything more collides with the clock. The rest collapses into "+N".
+const TOPBAR_MAX_PARTS = 2;
+
+// Priority used to pick those slots: a remaining share (tightest first), then a
+// plain amount, then rows that failed or have no data yet.
+const TOPBAR_PCT = 0;
+const TOPBAR_VALUE = 1;
+const TOPBAR_FAILED = 2;
+const TOPBAR_PENDING = 3;
+
 function fmtAmount(currency, value) {
     const sym = CURRENCY_SYMBOL[currency] ?? `${currency} `;
     return `${sym}${value.toFixed(2)}`;
@@ -315,33 +326,29 @@ class BalancePanel extends PanelMenu.Button {
         this._renderCards();
     }
 
-    _bridgeTightest(st) {
-        // Tightest (lowest remaining) window across all bridge cards.
-        let worst = null;
+    _bridgeTopbarParts(st) {
+        // One part per collected provider, so the bridge obeys the same
+        // 单显/轮播 rule as the direct providers instead of collapsing the whole
+        // snapshot into whichever row happens to be tightest.
+        const parts = [];
         for (const card of st.cards ?? []) {
+            let tightest = null;
             for (const w of card.windows ?? []) {
-                if (!worst || w.remaining < worst.remaining)
-                    worst = { name: card.name, remaining: w.remaining };
+                if (tightest === null || w.remaining < tightest)
+                    tightest = w.remaining;
             }
+            if (tightest !== null)
+                parts.push({ name: card.name, value: `${Math.round(tightest)}%`, tone: tightest < 20 ? 'err' : 'pct', rank: TOPBAR_PCT, urgency: tightest });
+            else if (card.credits)
+                parts.push({ name: card.name, value: fmtCredits(card.credits), tone: 'value', rank: TOPBAR_VALUE, urgency: 0 });
+            else if (card.todayUSD !== null && card.todayUSD !== undefined)
+                parts.push({ name: card.name, value: `$${card.todayUSD.toFixed(2)}`, tone: 'value', rank: TOPBAR_VALUE, urgency: 0 });
+            // Rows with no data at all (no lane, no credits, no cost) stay out of
+            // the bar unless they failed — then they report like a direct provider.
+            else if (card.error)
+                parts.push({ name: card.name, value: '!', tone: 'err', failed: true, rank: TOPBAR_FAILED, urgency: 0 });
         }
-        return worst;
-    }
-
-    _bridgeTopbarPart(st) {
-        const worst = this._bridgeTightest(st);
-        if (worst)
-            return { name: worst.name, value: `${Math.round(worst.remaining)}%`, tone: worst.remaining < 20 ? 'err' : 'pct' };
-        // Snapshots may hold cost/credits-only rows (no quota window at all);
-        // fall back so a pinned bridge is never silent.
-        for (const card of st.cards ?? []) {
-            if (card.credits)
-                return { name: card.name, value: fmtCredits(card.credits), tone: 'value' };
-        }
-        for (const card of st.cards ?? []) {
-            if (card.todayUSD !== null && card.todayUSD !== undefined)
-                return { name: card.name, value: `$${card.todayUSD.toFixed(2)}`, tone: 'value' };
-        }
-        return null;
+        return parts;
     }
 
     _renderSummary() {
@@ -355,28 +362,35 @@ class BalancePanel extends PanelMenu.Button {
             const disp = this._displayName(p, cfg);
             if (p.bridge) {
                 if (st.kind === 'ok') {
-                    const part = this._bridgeTopbarPart(st);
-                    if (part)
+                    for (const part of this._bridgeTopbarParts(st)) {
+                        if (part.failed)
+                            errors++;
                         parts.push(part);
+                    }
                 } else if (st.kind !== 'loading' && st.kind !== 'init') {
                     errors++;
-                    parts.push({ name: disp, value: '!', tone: 'err' });
+                    parts.push({ name: disp, value: '!', tone: 'err', rank: TOPBAR_FAILED, urgency: 0 });
                 }
                 continue;
             }
             if (st.kind === 'ok') {
                 const amounts = st.entries.map(e => fmtAmount(e.currency, e.total)).join(' ');
-                parts.push({ name: disp, value: amounts, tone: 'value' });
+                parts.push({ name: disp, value: amounts, tone: 'value', rank: TOPBAR_VALUE, urgency: 0 });
             } else if (st.kind === 'unconfigured') {
-                parts.push({ name: disp, value: '未配置', tone: 'dim' });
+                parts.push({ name: disp, value: '未配置', tone: 'dim', rank: TOPBAR_PENDING, urgency: 0 });
             } else if (st.kind === 'loading' || st.kind === 'init') {
-                parts.push({ name: disp, value: '…', tone: 'dim' });
+                parts.push({ name: disp, value: '…', tone: 'dim', rank: TOPBAR_PENDING, urgency: 0 });
             } else {
                 errors++;
-                parts.push({ name: disp, value: '!', tone: 'err' });
+                parts.push({ name: disp, value: '!', tone: 'err', rank: TOPBAR_FAILED, urgency: 0 });
             }
         }
 
+        // 单显 only has room for the top couple of slots, so show what actually
+        // needs attention: the tightest remaining share first, then amounts, and
+        // failed/pending rows last (a failure still raises the ⚠ badge). The sort
+        // is stable, so equal-rank rows keep the provider order.
+        parts.sort((a, b) => a.rank - b.rank || a.urgency - b.urgency);
         this._topbarParts = parts;
         if (this._topbarIdx >= parts.length)
             this._topbarIdx = 0;
@@ -401,13 +415,20 @@ class BalancePanel extends PanelMenu.Button {
             return;
         }
         const mode = this._settings.get_string('topbar-display');
-        const shown = mode === 'single' ? parts : [parts[this._topbarIdx % parts.length]];
+        const shown = mode === 'single' ? parts.slice(0, TOPBAR_MAX_PARTS) : [parts[this._topbarIdx % parts.length]];
         for (const [i, part] of shown.entries()) {
             if (i > 0)
                 add('|', 'ab-top-sep');
             add(part.name, 'ab-top-name');
             const tone = part.tone === 'value' ? '' : ` ab-top-${part.tone}`;
             add(part.value, `ab-top-value${tone}`);
+        }
+        // 单显 shows everything at once, so it needs a ceiling: past the last
+        // slot the bar runs into the clock. 轮播 needs none — it cycles all of them.
+        const hidden = parts.length - shown.length;
+        if (hidden > 0) {
+            add('|', 'ab-top-sep');
+            add(`+${hidden}`, 'ab-top-value ab-top-dim');
         }
     }
 

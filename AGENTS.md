@@ -51,7 +51,7 @@ gjs/GNOME 46 实测陷阱（均已踩过）：
 - 兼容性规则（只在我们这侧兜住，不向上游提要求）：`w.idle === true` 的窗口必须丢弃（上游文档与内置 Web UI 同此处理，键只在为真时出现）；`kind` 是开放词表（生产者把 `NamedRateWindow.id` 原样传出来，如 `kimi-monthly`），未知 `kind` 走 `KIND_LABELS` 兜底标签「配额窗口」，绝不把裸 id 渲染进面板，有 `windowMinutes` 时按时长标注；行 `windows` 为空且有 `accounts` 时取活动账号（`active === true`，否则第一个对象）的窗口与 `updatedAt`；`accountsError` 是整体采集失败的诊断，只作为 `note` 中性提示行显示，不标错误状态、不影响 `skipIds` 判定；`updatedAt` 超过顶层 `staleAfterSeconds` 时由 `extension.js` 打「N 分/小时前更新」灰标签（`GLib` 只在 UI 层用，provider 保持纯函数）。
 - 计费型服务商（DeepSeek/OpenRouter…）在快照里往往只有一个 100% 的占位窗口（`label: "Balance"`）、`credits`/`cost` 全为 null —— 金额只存在于上游的 `resetDescription` 人读字符串里，`makeWindow` 不投影它。不要为此解析 `resetDescription`（`/usage` 无版本、无鉴权、易碎）；README 已把边界写死：看余额用直连服务商。
 - 真实快照的形状差异（已按实测适配，勿改回）：套餐名在 `identity.plan` 而非顶层 `plan`；行级 `error` 是 `{code,message,kind}` 对象（取 `message`）；行上有 `enabled` 字段（`false` 时跳过）；`cost.todayUSD` 可以单独存在（无窗口无额度也是有效卡片）。窗口可能完全没有 `label`（旧生产者只给 `kind`/`usedPercent`/`remainingPercent`/`resetAt`/`windowMinutes`），所以 `KIND_LABELS` 是实际生效的文案来源；顶层 `staleAfterSeconds`/`host` 也是新增键，缺失时不标陈旧。
-- 顶栏兜底：桥接置顶时取最紧窗口，快照里没有任何窗口则退回额度或今日费用（否则纯计费类服务商会让顶栏沉默）。
+- 顶栏粒度：桥接快照里**每个服务商各占一项**（曾把整份快照塌缩成"最紧的一项"，用户反馈"永远只显示最后一个"，故改）。每项取该卡片最紧的窗口，无窗口退额度、再退今日费用、只有失败行才报 `!`（计入 ⚠ 角标）。所有 parts 按 `rank`（`TOPBAR_PCT` < `TOPBAR_VALUE` < `TOPBAR_FAILED` < `TOPBAR_PENDING`）+ `urgency` 稳定排序，`rank` 在 push 时就写好，**不要按 `tone` 推**（剩余 <20% 的 tone 也是 `err`，会和失败项同档）。`单显` 只渲染前 `TOPBAR_MAX_PARTS`（2）项，其余折叠成 `+N` —— 实测 8 项会把顶栏挤到和时钟重叠；`轮播` 不折叠、逐项循环。
 - `skipIds` 是已启用直连 provider 的 id 集合：快照中同 id 的桥接卡片必须丢弃，以直连数据为准。
 
 ## GSettings 与 EGO 审核约束
