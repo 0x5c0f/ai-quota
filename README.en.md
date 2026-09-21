@@ -12,9 +12,9 @@ GNOME preferences window.
 
 ## Screenshots
 
-Dropdown panel (with the top bar balance display). The two sides of the
-diagonal are the same layout in each of the two self-drawn palettes, matching
-the system's dark and light modes:
+Dropdown panel (with the top bar balance display). The two halves are the
+same layout in each of the two self-drawn palettes, matching the system's dark
+and light modes; the providers shown come from a local demo snapshot.
 
 ![Detail panel, dark and light palettes](docs/screenshot-panel.png)
 
