@@ -73,7 +73,19 @@ Git 历史目前较短，已有 `docs: ...` 这类前缀；建议继续使用简
 
 ## Documentation & Release Notes
 
-面向用户的行为变化应同步更新 `README.md` 和 `README.en.md`。新增截图放入 `docs/`，并使用相对路径引用。发布相关改动应对照 `.github/workflows/release.yml`，确认 zip 内容仍只包含扩展运行所需文件，作为 release checklist 和 CI package validation。Release 仅由 `v*` tag 推送触发 CI 打包，文档类提交不打卡片；`metadata.json` 的 `version` 只在向 extensions.gnome.org 上传新版本时递增，与 git tag 无关。
+面向用户的行为变化应同步更新 `README.md` 和 `README.en.md`。新增截图放入 `docs/`，并使用相对路径引用。`docs/screenshot-panel.png` 是**斜分割线合成图**（左半深色、右半浅色，同一弹窗的两次采集沿对角线拼接），重做步骤：
+
+```bash
+SRC=$PWD ../shot-bridge.sh ok /tmp/panel-dark.png    # THEME=auto（默认深色）
+SRC=$PWD THEME=light ../shot-bridge.sh ok /tmp/panel-light.png
+convert /tmp/panel-dark.png  -crop 420x1040+1180+0 +repage /tmp/D.png
+convert /tmp/panel-light.png -crop 420x1040+1180+0 +repage /tmp/L.png
+convert -size 420x1040 xc:black -fill white -draw "polygon 0,0 336,0 21,1040 0,1040" /tmp/M.png
+convert /tmp/D.png /tmp/M.png -alpha off -compose CopyOpacity -composite /tmp/DM.png
+convert /tmp/L.png /tmp/DM.png -composite docs/screenshot-panel.png
+```
+
+裁剪偏移随 `SCREEN` 变（默认 1600x1200 下弹窗在 x≈1195..1575），别照抄到别的分辨率；README 里“对角线两侧”那句描述与这张图绑定，改图必须同时改文案。发布相关改动应对照 `.github/workflows/release.yml`，确认 zip 内容仍只包含扩展运行所需文件，作为 release checklist 和 CI package validation。Release 仅由 `v*` tag 推送触发 CI 打包，文档类提交不打卡片；`metadata.json` 的 `version` 只在向 extensions.gnome.org 上传新版本时递增，与 git tag 无关。
 
 ## Security & Configuration Tips
 
