@@ -134,6 +134,20 @@ export default class ApiBalancePrefs extends ExtensionPreferences {
             settings.set_string('window-display', winCombo.get_selected() === 1 ? 'text' : 'bar');
         });
         group.add(winCombo);
+
+        const themeModes = ['auto', 'dark', 'light'];
+        const themeCombo = new Adw.ComboRow({
+            title: '面板配色',
+            subtitle: '面板为自绘配色，不跟随第三方 GTK 主题；「自动」仅跟随系统的深/浅设置。顶栏文字始终跟随顶栏本身，不受此项影响',
+            model: new Gtk.StringList({
+                strings: ['自动（跟随系统深/浅色）', '始终暗色', '始终亮色'],
+            }),
+        });
+        themeCombo.set_selected(Math.max(0, themeModes.indexOf(settings.get_string('theme-mode'))));
+        themeCombo.connect('notify::selected', () => {
+            settings.set_string('theme-mode', themeModes[themeCombo.get_selected()] ?? 'auto');
+        });
+        group.add(themeCombo);
     }
 
     _buildProvidersGroup(page, settings) {

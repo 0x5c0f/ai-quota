@@ -1,7 +1,7 @@
 /* Self-drawn card UI. The panel deliberately does not follow the system
- * theme: every colour below is fixed, so the cards always read as designed
- * regardless of the user's theme (we cannot validate against all of them).
- * Only the top bar indicator borrows a translucent background. */
+ * theme: the two palettes below are ours, so the cards always read as designed
+ * (we cannot validate against third-party themes). The only system input is the
+ * dark/light switch, which toggles the `ab-light` state class. */
 
 /* ── top bar ─────────────────────────────────────────── */
 
@@ -257,4 +257,119 @@
   padding: 16px 0;
   font-size: 12.5px;
   color: #9a9996;
+}
+
+/* ── light palette ───────────────────────────────────── */
+
+/* Only colours differ from the dark defaults above; layout/typography rules are
+ * inherited. `ab-light` sits on the popup box and on the top bar button, which
+ * are two separate actor trees, hence the two prefixed groups below. Tinted
+ * chips get their own light ink colour rather than an inverted one, so contrast
+ * stays legible on a white card. */
+
+.popup-menu-content.ab-popup.ab-light {
+  border-color: #c9c7c4;
+  background-color: rgba(252, 252, 252, 0.98);
+  color: #241f31;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+.ab-light .ab-title {
+  color: #241f31;
+}
+
+.ab-light .ab-iconbtn {
+  background-color: rgba(0, 0, 0, 0.07);
+  color: #241f31;
+}
+
+.ab-light .ab-iconbtn:hover {
+  background-color: rgba(0, 0, 0, 0.13);
+}
+
+.ab-light .ab-iconbtn:active {
+  background-color: rgba(0, 0, 0, 0.20);
+}
+
+.ab-light .ab-card {
+  background-color: rgba(0, 0, 0, 0.045);
+}
+
+.ab-light .ab-card-name,
+.ab-light .ab-money-big,
+.ab-light .ab-win-rem {
+  color: #1e1e1e;
+}
+
+.ab-light .ab-tag {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #5e5c64;
+}
+
+.ab-light .ab-tag-ok,
+.ab-light .ab-foot-pill {
+  background-color: #d7f2e0;
+  color: #166a3d;
+}
+
+.ab-light .ab-tag-src {
+  background-color: #dbe8fb;
+  color: #1a5fb4;
+}
+
+.ab-light .ab-tag-err,
+.ab-light .ab-foot-pill-warn {
+  background-color: #fadbdb;
+  color: #a51b1d;
+}
+
+.ab-light .ab-money-cap,
+.ab-light .ab-win-label {
+  color: #57565d;
+}
+
+.ab-light .ab-sub,
+.ab-light .ab-win-cost,
+.ab-light .ab-win-reset,
+.ab-light .ab-empty {
+  color: #5e5c64;
+}
+
+.ab-light .ab-sub-err,
+.ab-light .ab-win-crit {
+  color: #c01c28;
+}
+
+.ab-light .ab-cur-sep {
+  background-color: rgba(0, 0, 0, 0.10);
+}
+
+/* Top bar over the light panel bar: dark ink, and the tinted tones need enough
+ * weight to survive a white background. */
+.ab-light .ab-top-name {
+  color: rgba(30, 30, 30, 0.62);
+}
+
+.ab-light .ab-top-value {
+  color: #1e1e1e;
+}
+
+.ab-light .ab-top-pct {
+  color: #1c7c46;
+}
+
+.ab-light .ab-top-err {
+  color: #c01c28;
+}
+
+.ab-light .ab-top-dim {
+  color: rgba(30, 30, 30, 0.50);
+}
+
+.ab-light .ab-top-sep {
+  color: rgba(30, 30, 30, 0.28);
+}
+
+.ab-light .ab-badge {
+  color: #a46106;
 }

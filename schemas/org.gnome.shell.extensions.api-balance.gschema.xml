@@ -14,6 +14,10 @@
       <default>'bar'</default>
       <summary>How quota windows render in the panel: bar or text</summary>
     </key>
+    <key name="theme-mode" type="s">
+      <default>'auto'</default>
+      <summary>Panel palette: auto follows the desktop dark setting, or force dark / light</summary>
+    </key>
     <child name="deepseek" schema="org.gnome.shell.extensions.api-balance.deepseek"/>
     <child name="codexbar" schema="org.gnome.shell.extensions.api-balance.codexbar"/>
     <child name="custom" schema="org.gnome.shell.extensions.api-balance.custom"/>

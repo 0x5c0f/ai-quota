@@ -24,6 +24,10 @@ gjs/GNOME 46 实测陷阱（均已踩过）：
 - 子进程判错用 `get_exit_status() !== 0`（无 `if_success()`）；临时文件名用 `GLib.get_monotonic_time()` 生成（`GLib.get_pid` 不存在），先读文件再删除。
 - GNOME 46 的 `St.BoxLayout` 没有 `spacing` 属性：构造时传 `spacing: 6` 会抛 `No property spacing on StBoxLayout`，间距一律写在 CSS 类里。
 - 面板自绘样式：`this.menu.box` 本身就带主题的 `popup-menu-content` 类（没有单独的外层容器），覆盖主题规则要用复合选择器 `.popup-menu-content.ab-popup`（靠特异性取胜，不依赖加载顺序）。快照里的 `display.accentColor` 会进 CSS 字符串，必须先按 `^#[0-9a-fA-F]{6}$` 白名单校验再用。
+- St 的 CSS 不支持自定义属性（`var(--x)` 无解）：浅色调色板只能给暗色默认规则逐条写 `.ab-light` 覆盖，只覆盖带颜色的属性、布局与字号共用。
+- 深浅两套配色挂在**两棵不同的 actor 树**上：弹层用 `this.menu.box`，顶栏用按钮自身，二者都要挂 `ab-light` 才能被 `.ab-light X` 后代选择器命中（St 支持后代选择器，`gnome-shell.css` 里大量在用）。
+- 顶栏指示文字**不能**按 `color-scheme` 决定明暗：shell 顶栏背景由 shell 主题自己决定，Yaru 在浅色模式下仍是深色 bar。可靠信号是按钮继承来的主题色 `this.get_theme_node().get_color('color')`（实测 242,242,242,255）；`Main.panel` 自己的节点返回 `0,0,0,0`（未设色），别用它。
+- 进度条底槽颜色画在 cairo（`cr.setSourceRGBA`）里，CSS 到不了：切换调色板时必须重绘，`_applyPalette()` 换类后要 `_renderCards()`。
 
 新增 provider 需同步五处（漏一处，设置界面或打包校验就会坏）：
 

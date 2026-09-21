@@ -123,6 +123,8 @@ class BalancePanel extends PanelMenu.Button {
         this._lastFetch = null;
         this._signals = [];
         this._providers = buildProviders();
+        this._light = false;
+        this._barDarkInk = null;
         this._states = new Map(); // providerId -> {kind, ...}
         for (const p of this._providers)
             this._states.set(p.id, { kind: 'init' });
@@ -137,6 +139,16 @@ class BalancePanel extends PanelMenu.Button {
         this.add_child(this._panelBox);
 
         this._buildPopup();
+
+        // The desktop dark/light switch is the only system input the palette takes.
+        try {
+            this._iface = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
+        } catch (e) {
+            this._iface = null; // no interface schema: stay on the dark palette
+        }
+        if (this._iface)
+            this._signals.push({ obj: this._iface, id: this._iface.connect('changed', () => this._applyPalette()) });
+        this._applyPalette();
 
         // Parent keys (refresh-interval, topbar-display) fire on the main settings;
         // per-provider keys (enabled/pinned/api-key, plus custom's url/maps) live in
@@ -186,6 +198,59 @@ class BalancePanel extends PanelMenu.Button {
 
     _displayName(p, cfg) {
         return p.id === 'custom' ? (cfg.name || '自定义') : p.name;
+    }
+
+    _desktopPrefersDark() {
+        // The same two keys Adwaita reads. Contrast schemes are accessibility
+        // settings we do not mirror, so they fall back to the legacy boolean.
+        const scheme = this._iface.get_string('color-scheme');
+        if (scheme === 'default')
+            return false;
+        if (scheme === 'prefer-dark')
+            return true;
+        return this._iface.get_boolean('gtk-application-prefer-dark-theme');
+    }
+
+    _applyPalette() {
+        const mode = this._settings.get_string('theme-mode');
+        const light = mode === 'light' ||
+            (mode !== 'dark' && this._iface && !this._desktopPrefersDark());
+        if (light === this._light)
+            return;
+        this._light = light;
+        if (light)
+            this.menu.box.add_style_class_name('ab-light');
+        else
+            this.menu.box.remove_style_class_name('ab-light');
+        this._renderCards(); // the progress-bar track is painted in JS, not CSS
+    }
+
+    _barNeedsDarkInk() {
+        // The bar's own background belongs to the shell theme and does not
+        // necessarily follow the desktop switch (Yaru keeps a dark bar in light
+        // mode), so match the theme's bar text. Our button inherits that colour
+        // (.ab-top-* colours the labels, never the button), whereas #panel itself
+        // reports an unset colour.
+        try {
+            const c = this.get_theme_node().get_color('color');
+            if (c.alpha < 50)
+                throw new Error('button colour is unset');
+            return 0.2126 * c.red + 0.7152 * c.green + 0.0722 * c.blue < 128;
+        } catch (e) {
+            return this._iface ? !this._desktopPrefersDark() : false;
+        }
+    }
+
+    _applyBarInk() {
+        const darkInk = this._barNeedsDarkInk();
+        if (darkInk === this._barDarkInk)
+            return;
+        this._barDarkInk = darkInk;
+        // Same state class as the popup, on the other actor tree (the button).
+        if (darkInk)
+            this.add_style_class_name('ab-light');
+        else
+            this.remove_style_class_name('ab-light');
     }
 
     /* ── popup panel ──────────────────────────────────── */
@@ -305,6 +370,7 @@ class BalancePanel extends PanelMenu.Button {
     }
 
     _applyTopbar() {
+        this._applyBarInk();
         this._summaryBox.destroy_all_children();
         const parts = this._topbarParts;
         const add = (text, cls) => this._summaryBox.add_child(
@@ -537,7 +603,7 @@ class BalancePanel extends PanelMenu.Button {
             const cr = a.get_context();
             const [wpx, hpx] = a.get_surface_size();
             const r = hpx / 2;
-            cr.setSourceRGBA(1, 1, 1, 0.12);
+            cr.setSourceRGBA(...(this._light ? [0, 0, 0, 0.10] : [1, 1, 1, 0.12]));
             this._roundRect(cr, 0, 0, wpx, hpx, r);
             cr.fill();
             const [r0, g0, b0] = windowColor(w.remaining);
@@ -610,6 +676,11 @@ class BalancePanel extends PanelMenu.Button {
     _onSettingChanged(key) {
         if (key === 'refresh-interval')
             this._startTimer();
+        // A palette switch needs no re-render beyond repainting the bars.
+        if (key === 'theme-mode') {
+            this._applyPalette();
+            return;
+        }
         // Display-mode change needs only a re-render, not a network refetch.
         if (key === 'topbar-display' || key === 'window-display') {
             this._render();
@@ -778,6 +849,7 @@ class BalancePanel extends PanelMenu.Button {
         for (const { obj, id } of this._signals)
             obj.disconnect(id);
         this._signals = [];
+        this._iface = null;
         super.destroy();
     }
 }

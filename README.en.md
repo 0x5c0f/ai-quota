@@ -29,9 +29,11 @@ Dropdown panel (with the top bar balance display):
   (Claude, Gemini, Cursor, and more).
 - Quota windows (session / weekly, etc.) rendered as progress bars with reset
   countdowns and usage-based colors.
-- The dropdown is a self-drawn dark card UI that deliberately does not follow the
-  system theme, so it looks the same under any theme and we do not have to chase
-  community themes.
+- The dropdown is a self-drawn card UI with its own dark and light palettes: it
+  follows the desktop's dark/light preference by default (or pin it in prefs) and
+  never tries to adapt to third-party themes.
+- The top bar indicator takes the bar's own text colour, so it stays readable on a
+  light bar as well as a dark one.
 - Reads custom endpoint response fields via JSON dot paths.
 - No telemetry; never contacts third-party services you have not configured.
 
