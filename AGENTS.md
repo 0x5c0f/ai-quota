@@ -6,7 +6,7 @@
 
 ## Build, Test, and Development Commands
 
-- `glib-compile-schemas schemas/`：本地编译 GSettings schema，适合快速检查 XML 是否可用。
+- `glib-compile-schemas schemas/`：本地编译 GSettings schema，适合快速检查 XML 是否可用。产物 `schemas/gschemas.compiled` 是构建产物（已 gitignore，不进 zip），别提交。
 - `glib-compile-schemas --strict --targetdir=$(mktemp -d) schemas/`：按 CI 方式严格校验 schema。
 - `for f in extension.js prefs.js providers/*.js; do cp "$f" /tmp/check.mjs && node --check /tmp/check.mjs; done`：检查所有 JavaScript 模块语法。
 - `gnome-extensions pack -f --extra-source=providers .`：使用 GNOME 工具打包扩展。
