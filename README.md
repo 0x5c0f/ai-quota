@@ -8,9 +8,9 @@
 
 ## 效果预览
 
-下拉展示面板（含顶栏余额显示）：
+下拉展示面板（含顶栏余额显示）。对角线两侧是同一套布局的两套自绘配色，分别对应系统的深色与浅色：
 
-![展示面板](docs/screenshot-panel.png)
+![展示面板：深浅两套配色](docs/screenshot-panel.png)
 
 ## 功能特性
 
@@ -49,21 +49,101 @@
 - 使用 Claude、Gemini、Cursor 等订阅制套餐（按 5 小时 / 周窗口限流）。
 - 不想在扩展中逐个配置各服务商 API Key。
 
-### 使用前提
+### 第一步：在 CodexBar 侧配置服务商
 
-1. 在本机安装 CodexBar，并在其自身配置（`~/.config/codexbar/config.json`）中完成各服务商的登录或密钥设置。
-2. 二选一提供快照：
-   - **CLI 模式**（默认，零额外配置）：扩展每次刷新执行 `codexbar dashboard --output <临时文件>`，
-     直接读取 CodexBar 自身配置，不需要常驻服务、也不需要令牌。单次抓取通常 5–15 秒。
-   - **HTTP 模式**：运行 `codexbar serve`，扩展请求 `http://127.0.0.1:8080/dashboard/v1/snapshot`。
-     该接口带令牌鉴权且默认拒绝匿名访问，因此需要：
+先在本机装好 CodexBar（见其仓库的说明）。各服务商的登录与密钥**只存在 CodexBar 自己的配置里**（`~/.config/codexbar/config.json`），本扩展既不读取也不写入这些密钥。
 
-     ```bash
-     CODEXBAR_DASHBOARD_TOKEN=你的令牌 codexbar serve
-     ```
+配置有两种做法，任选其一：
 
-     并在扩展设置里填入同一个令牌；未配置令牌时该接口一律返回 401。
-     服务端会缓存快照（`--refresh-interval`，默认 60 秒），因此刷新间隔较短时 HTTP 模式更省资源。
+- 在 CodexBar 自身的界面里打开对应服务商的开关（推荐，界面会处理登录流程）。
+- 直接编辑 `config.json`，在 `providers` 数组里为每家加一条：
+
+```jsonc
+{
+  "version": 1,
+  "providers": [
+    { "id": "claude", "enabled": true,  "source": "auto" },
+    { "id": "gemini", "enabled": true,  "source": "auto" },
+    { "id": "cursor", "enabled": true,  "source": "auto" }
+  ]
+}
+```
+
+`id` 取 CodexBar 支持的服务商标识（`codexbar usage --help` 里 `--provider` 的可选值就是全集，约 70 家）。同一家还可以存多个账号：`tokenAccounts` 形如 `{ "activeIndex": 0, "accounts": [ { "label": "工作", "token": "…" }, … ] }`，`activeIndex` 决定当前使用哪一个。
+
+配好后用命令行自检，确认 CodexBar 自己能看到数据：
+
+```bash
+codexbar usage                        # 所有已启用服务商（跟随应用内开关）
+codexbar usage --provider claude      # 单独一家
+```
+
+> 自检时不要用 `--provider all`：它会无视开关去探测全部约 70 家服务商，其中一些（如 Claude）
+> 是靠拉起本机 CLI 会话取数的，一旦该 CLI 无响应，整条命令就会长时间无输出地卡住。
+
+**扩展侧不需要再逐个配置**：快照里每个 `enabled` 的服务商会自动成为面板上的一张卡片。
+
+### 第二步：选一种传输方式对接扩展
+
+设置窗口 →「桥接层」→「连接模式」，两选一。
+
+#### CLI 模式（默认，零额外配置）
+
+扩展每次刷新执行一次：
+
+```bash
+codexbar dashboard --output <临时文件>
+```
+
+不需要常驻服务、不需要令牌（它直接读 CodexBar 自己的配置）。抓取时间随已启用的服务商数量增长，
+通常几秒到十几秒，因此「自动刷新间隔」建议设在 5 分钟以上。
+
+若 `codexbar` 不在 `PATH` 里，把「CLI 命令」改成绝对路径（例如 `/usr/local/bin/codexbar`）；`dashboard --output <路径>` 由扩展自动追加，不要写进这一栏。
+
+#### HTTP 模式（常驻服务，刷新更快）
+
+启动服务（默认监听 `127.0.0.1:8080`）：
+
+```bash
+CODEXBAR_DASHBOARD_TOKEN='你的令牌' codexbar serve --refresh-interval 60
+```
+
+然后在扩展设置里填：
+
+- 快照地址：`http://127.0.0.1:8080/dashboard/v1/snapshot`
+- 访问令牌：与上面完全相同的那个值
+
+要点：
+
+- `/dashboard/v1/snapshot` 需要 `Authorization: Bearer <令牌>`，且**默认拒绝匿名访问**——服务端没配令牌时该接口一律返回 401，不会放行。
+- 令牌请用环境变量传，不要用 `--dashboard-token`：命令行参数会被同机其他用户通过 `ps` 看到。
+- `--refresh-interval`（默认 60 秒）是服务端缓存快照的周期；把扩展的刷新间隔设得比它小并不会更快拿到新数据。
+- 想换到非本机地址（`--host 0.0.0.0` 等）必须同时加 `--allow-plain-http`，且传输仍是明文 HTTP，令牌每次请求都在网络上裸跑——请放到 TLS 反向代理后面，不要暴露到不可信网段。
+- 介意快照里带账号邮箱时，加 `--identity redacted`（隐藏邮箱本地部分）。
+
+### 第三步：设置字段对照
+
+| 扩展设置项 | CLI 模式 | HTTP 模式 |
+| --- | --- | --- |
+| 启用桥接 | 开 | 开 |
+| 在顶栏显示（置顶） | 按需 | 按需 |
+| 连接模式 | CLI（一次性命令） | HTTP（codexbar serve） |
+| 快照地址 | 留默认即可，不使用 | `http://127.0.0.1:8080/dashboard/v1/snapshot` |
+| 访问令牌 | 留空，不使用 | 与 `CODEXBAR_DASHBOARD_TOKEN` 一致 |
+| CLI 命令 | `codexbar`（或绝对路径） | 留默认即可，不使用 |
+
+### 自检与排错
+
+```bash
+curl -sf http://127.0.0.1:8080/health                       # 服务是否活着
+curl -sf -H "Authorization: Bearer 你的令牌" \
+  http://127.0.0.1:8080/dashboard/v1/snapshot | head -c 400  # 快照能否取到
+```
+
+- 卡片显示**密钥无效**或 curl 返回 401：扩展里的令牌与服务端的不一致，或服务端启动时没设令牌。
+- 卡片显示**服务不可用**：`codexbar serve` 没在跑，或端口/地址不对（先用上面的 `/health` 确认）。
+- 面板提示「快照中无可展示的服务商」：要么该服务商已被直连覆盖（见下条），要么 CodexBar 侧一个服务商都没启用。
+- CLI 模式显示**查询失败**：`which codexbar` 检查命令是否在 `PATH` 中，或改用绝对路径。
 
 ### 行为说明
 
@@ -358,3 +438,4 @@ git push origin main --tags
 - [项目仓库](https://github.com/0x5c0f/api-balance)
 - [GitHub Releases](https://github.com/0x5c0f/api-balance/releases)
 - [GNOME Extensions](https://extensions.gnome.org/extension/10989/api-balance/)
+- [CodexBar](https://github.com/steipete/CodexBar)

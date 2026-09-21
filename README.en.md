@@ -12,9 +12,11 @@ GNOME preferences window.
 
 ## Screenshots
 
-Dropdown panel (with the top bar balance display):
+Dropdown panel (with the top bar balance display). The two sides of the
+diagonal are the same layout in each of the two self-drawn palettes, matching
+the system's dark and light modes:
 
-![Detail panel](docs/screenshot-panel.png)
+![Detail panel, dark and light palettes](docs/screenshot-panel.png)
 
 ## Features
 
@@ -65,27 +67,131 @@ Suited for:
   weekly windows).
 - Avoiding per-provider API key configuration inside the extension.
 
-### Prerequisites
+### Step 1: configure the providers in CodexBar
 
-1. Install CodexBar locally and complete each provider's login or key setup in
-   CodexBar's own configuration (`~/.config/codexbar/config.json`).
-2. Provide the snapshot in one of two ways:
-   - **CLI mode** (default, zero extra setup): the extension runs
-     `codexbar dashboard --output <tmpfile>` on every refresh, reading
-     CodexBar's own configuration directly — no daemon and no token. One fetch
-     typically takes 5–15 seconds.
-   - **HTTP mode**: run `codexbar serve`, and the extension requests
-     `http://127.0.0.1:8080/dashboard/v1/snapshot`. This endpoint is token
-     gated and denies anonymous access by default, so you need:
+Install CodexBar locally first (see its repository). Each provider's login and
+keys live **only in CodexBar's own configuration**
+(`~/.config/codexbar/config.json`); this extension neither reads nor writes
+them.
 
-     ```bash
-     CODEXBAR_DASHBOARD_TOKEN=your-token codexbar serve
-     ```
+Do it one of two ways:
 
-     and the same token in the extension settings; without a server-side token
-     the endpoint still answers 401. The server caches the snapshot
-     (`--refresh-interval`, 60 seconds by default), so HTTP mode is cheaper for
-     short refresh intervals.
+- Flip the provider's switch inside CodexBar itself (recommended — its UI runs
+  the login flow for you).
+- Edit `config.json` directly and add one entry per provider to the `providers`
+  array:
+
+```jsonc
+{
+  "version": 1,
+  "providers": [
+    { "id": "claude", "enabled": true,  "source": "auto" },
+    { "id": "gemini", "enabled": true,  "source": "auto" },
+    { "id": "cursor", "enabled": true,  "source": "auto" }
+  ]
+}
+```
+
+`id` is one of CodexBar's provider identifiers — the full set (about 70) is
+listed as the accepted values of `--provider` in `codexbar usage --help`.
+A single provider can also hold several accounts: `tokenAccounts` looks like
+`{ "activeIndex": 0, "accounts": [ { "label": "work", "token": "…" }, … ] }`,
+and `activeIndex` picks the one in use.
+
+Then check that CodexBar itself sees data before involving the extension:
+
+```bash
+codexbar usage                        # enabled providers (honors in-app toggles)
+codexbar usage --provider claude      # one provider
+```
+
+> Do not self-check with `--provider all`: it ignores the toggles and probes all
+> ~70 providers, some of which (Claude, for instance) fetch usage by driving a
+> local CLI session. If that CLI stops answering, the command blocks for minutes
+> without printing anything.
+
+**Nothing has to be configured per provider on the extension side**: every
+`enabled` provider in the snapshot automatically becomes a card in the panel.
+
+### Step 2: pick a transport
+
+Preferences → 桥接层 (Bridge) → "Connection mode" — choose one.
+
+#### CLI mode (default, zero extra setup)
+
+On every refresh the extension runs:
+
+```bash
+codexbar dashboard --output <tmpfile>
+```
+
+No daemon and no token needed, because it reads CodexBar's own configuration
+directly. The cost is that a fetch takes from a few seconds up to a dozen or so,
+growing with the number of enabled providers, so keep the "Auto refresh interval"
+at 5 minutes or more.
+
+If `codexbar` is not in `PATH`, set "CLI command" to its absolute path (e.g.
+`/usr/local/bin/codexbar`). The `dashboard --output <path>` part is appended by
+the extension — do not type it into that field.
+
+#### HTTP mode (standing server, faster refresh)
+
+Start the server (listens on `127.0.0.1:8080` by default):
+
+```bash
+CODEXBAR_DASHBOARD_TOKEN='your-token' codexbar serve --refresh-interval 60
+```
+
+Then fill in the extension settings:
+
+- Snapshot URL: `http://127.0.0.1:8080/dashboard/v1/snapshot`
+- Access token: exactly the value used above
+
+Notes:
+
+- `/dashboard/v1/snapshot` requires `Authorization: Bearer <token>` and
+  **denies anonymous access by default** — if the server has no token
+  configured, the endpoint answers 401 rather than letting requests through.
+- Pass the token as an environment variable, not `--dashboard-token`: command
+  line arguments are visible to other local users through `ps`.
+- `--refresh-interval` (60 seconds by default) is how often the *server*
+  recaches the snapshot; setting a shorter refresh interval in the extension
+  will not get newer data any faster.
+- Binding to anything but the loopback address (e.g. `--host 0.0.0.0`) also
+  requires `--allow-plain-http`, and the transport stays plain HTTP — the token
+  then crosses the network on every request. Put it behind a TLS reverse proxy
+  and never on an untrusted network.
+- If you would rather the snapshot not carry account e-mails, add
+  `--identity redacted` (hides the local part).
+
+### Step 3: which setting goes where
+
+| Extension setting | CLI mode | HTTP mode |
+| --- | --- | --- |
+| Enable bridge | on | on |
+| Show in top bar (pin) | as needed | as needed |
+| Connection mode | CLI (one-shot command) | HTTP (`codexbar serve`) |
+| Snapshot URL | leave the default, unused | `http://127.0.0.1:8080/dashboard/v1/snapshot` |
+| Access token | leave empty, unused | same as `CODEXBAR_DASHBOARD_TOKEN` |
+| CLI command | `codexbar` (or an absolute path) | leave the default, unused |
+
+### Self-check and troubleshooting
+
+```bash
+curl -sf http://127.0.0.1:8080/health                        # is the server up?
+curl -sf -H "Authorization: Bearer your-token" \
+  http://127.0.0.1:8080/dashboard/v1/snapshot | head -c 400   # can the snapshot be fetched?
+```
+
+- A card reports **invalid key**, or curl gets 401: the token in the extension
+  differs from the server's, or the server was started without one.
+- A card reports **service unavailable**: `codexbar serve` is not running, or
+  the port/address is wrong (confirm with `/health` first).
+- The panel says "No displayable provider in the snapshot": either those
+  providers are already covered by direct queries (see below), or CodexBar has
+  no provider enabled at all.
+- CLI mode reports **Query failed**: check `which codexbar`, or switch the
+  setting to an absolute path.
 
 ### Behaviour
 
