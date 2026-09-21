@@ -444,5 +444,5 @@ git push origin main --tags
 
 - [项目仓库](https://github.com/0x5c0f/ai-quota)
 - [GitHub Releases](https://github.com/0x5c0f/ai-quota/releases)
-- [GNOME Extensions](https://extensions.gnome.org/extension/10989/ai-quota/)
+- [GNOME Extensions](https://extensions.gnome.org/extension/10997/ai-quota/)
 - [CodexBar](https://github.com/steipete/CodexBar)

@@ -538,4 +538,4 @@ This project is released under the [MIT License](LICENSE).
 
 - [Repository](https://github.com/0x5c0f/ai-quota)
 - [GitHub Releases](https://github.com/0x5c0f/ai-quota/releases)
-- [GNOME Extensions](https://extensions.gnome.org/extension/10989/ai-quota/)
+- [GNOME Extensions](https://extensions.gnome.org/extension/10997/ai-quota/)
