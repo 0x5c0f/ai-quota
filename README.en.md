@@ -122,17 +122,18 @@ Preferences → 桥接层 (Bridge) → "Connection mode" — choose one.
 On every refresh the extension runs:
 
 ```bash
-codexbar dashboard --output <tmpfile>
+codexbar dashboard
 ```
 
 No daemon and no token needed, because it reads CodexBar's own configuration
-directly. The cost is that a fetch takes from a few seconds up to a dozen or so,
-growing with the number of enabled providers, so keep the "Auto refresh interval"
-at 5 minutes or more.
+directly; the snapshot is read from the command's standard output, so the
+extension never writes a snapshot file to disk. A fetch takes from a few seconds
+up to a dozen or so, growing with the number of enabled providers, so keep the
+"Auto refresh interval" at 5 minutes or more.
 
 If `codexbar` is not in `PATH`, set "CLI command" to its absolute path (e.g.
-`/usr/local/bin/codexbar`). The `dashboard --output <path>` part is appended by
-the extension — do not type it into that field.
+`/usr/local/bin/codexbar`). The `dashboard` part is appended by the extension —
+do not type it into that field.
 
 #### HTTP mode (standing server, faster refresh)
 

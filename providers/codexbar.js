@@ -2,7 +2,7 @@
 // produced by the external CodexBar tool (https://github.com/steipete/CodexBar).
 // Two transports, chosen by cfg.mode:
 //   http -> GET cfg.url (a running `codexbar serve`)
-//   cli  -> run `cfg.command dashboard --output <tmpfile>` once per refresh
+//   cli  -> run `cfg.command dashboard` once per refresh, reading its stdout
 // Bridge results are cards (one per upstream provider), not balance entries.
 
 function num(v) {
@@ -56,9 +56,10 @@ export default class CodexBarProvider {
         };
     }
 
-    cliArgs(cfg, tmpPath) {
+    cliArgs(cfg) {
+        // Stdout carries only the snapshot JSON; CodexBar logs to stderr.
         const cmd = (cfg.command || 'codexbar').trim() || 'codexbar';
-        return [cmd, 'dashboard', '--output', tmpPath];
+        return [cmd, 'dashboard'];
     }
 
     parse(status, body, cfg, skipIds) {

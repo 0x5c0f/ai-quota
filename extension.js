@@ -744,10 +744,14 @@ class BalancePanel extends PanelMenu.Button {
     }
 
     _fetchBridgeCli(p, cfg, skipIds) {
-        const tmpPath = `/tmp/apib-codexbar-${GLib.get_monotonic_time()}.json`;
         let sub;
         try {
-            sub = new Gio.Subprocess({ argv: p.cliArgs(cfg, tmpPath), flags: 0 });
+            // Piped output: the snapshot arrives on stdout, so nothing is ever
+            // written to disk. communicate also reaps the process for us.
+            sub = new Gio.Subprocess({
+                argv: p.cliArgs(cfg),
+                flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE,
+            });
             sub.init(null);
         } catch (e) {
             this._states.set(p.id, { kind: 'error', error: `无法启动 CodexBar：${e.message}（请安装 codexbar 或改用 HTTP 模式）` });
@@ -756,21 +760,22 @@ class BalancePanel extends PanelMenu.Button {
         }
         const cancellable = new Gio.Cancellable();
         this._cancellables.push(cancellable);
-        sub.wait_async(cancellable, (s, res) => {
+        sub.communicate_utf8_async(null, cancellable, (s, res) => {
             if (!this._cancellables.includes(cancellable))
                 return;
             this._cancellables = this._cancellables.filter(c => c !== cancellable);
             let result;
             try {
-                s.wait_finish(res);
+                const [, stdout, stderr] = s.communicate_utf8_finish(res);
                 const status = s.get_exit_status();
-                if (status !== 0)
-                    throw new Error(`codexbar 退出码 ${status}`);
-                const [, bytes] = GLib.file_get_contents(tmpPath);
-                try {
-                    Gio.File.new_for_path(tmpPath).delete(null);
-                } catch (_) { /* gone already */ }
-                result = p.parse(200, new TextDecoder().decode(bytes), cfg, skipIds);
+                if (status !== 0) {
+                    // CodexBar reports on stderr; its first line beats a bare exit code.
+                    const why = (stderr || '').split('\n').find(l => l.trim() !== '');
+                    throw new Error(`codexbar 退出码 ${status}${why ? '：' + why.slice(0, 120) : ''}`);
+                }
+                if (!stdout)
+                    throw new Error('CodexBar 没有输出快照');
+                result = p.parse(200, stdout, cfg, skipIds);
             } catch (e) {
                 result = { ok: false, error: e.message };
             }

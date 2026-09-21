@@ -92,13 +92,13 @@ codexbar usage --provider claude      # 单独一家
 扩展每次刷新执行一次：
 
 ```bash
-codexbar dashboard --output <临时文件>
+codexbar dashboard
 ```
 
-不需要常驻服务、不需要令牌（它直接读 CodexBar 自己的配置）。抓取时间随已启用的服务商数量增长，
+不需要常驻服务、不需要令牌（它直接读 CodexBar 自己的配置）；快照从命令的标准输出读取，扩展不会往磁盘上落任何快照文件。抓取时间随已启用的服务商数量增长，
 通常几秒到十几秒，因此「自动刷新间隔」建议设在 5 分钟以上。
 
-若 `codexbar` 不在 `PATH` 里，把「CLI 命令」改成绝对路径（例如 `/usr/local/bin/codexbar`）；`dashboard --output <路径>` 由扩展自动追加，不要写进这一栏。
+若 `codexbar` 不在 `PATH` 里，把「CLI 命令」改成绝对路径（例如 `/usr/local/bin/codexbar`）；`dashboard` 由扩展自动追加，不要写进这一栏。
 
 #### HTTP 模式（常驻服务，刷新更快）
 
