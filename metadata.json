@@ -1,7 +1,7 @@
 {
   "uuid": "ai-quota@tools.0x5c0f.cc",
   "name": "AI Quota",
-  "description": "Show remaining quota/balance of AI API providers (DeepSeek, …) in the top bar",
+  "description": "Show balance and quota of multiple AI API providers in the top bar: built-in services, custom endpoints, or ~70 providers bridged through CodexBar.",
   "settings-schema": "org.gnome.shell.extensions.ai-quota",
   "shell-version": ["45", "46", "47", "48", "49", "50"],
   "url": "https://github.com/0x5c0f/ai-quota",
